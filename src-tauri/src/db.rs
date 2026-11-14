@@ -151,23 +151,55 @@ impl Database {
     }
 
     pub fn history_list(&self, query: Option<&str>, limit: u32, offset: u32) -> AppResult<Vec<HistoryEntry>> {
-        let conn = self.lock()?;
-        let sql = if query.is_some() {
-            "SELECT id, url, title, platform, thumbnail_url, file_path, container,
-                    quality_label, file_size, created_at, status, request_json
-             FROM downloads
-             WHERE title LIKE ?1 OR url LIKE ?1
-             ORDER BY created_at DESC LIMIT ?2 OFFSET ?3"
-        } else {
-            "SELECT id, url, title, platform, thumbnail_url, file_path, container,
-                    quality_label, file_size, created_at, status, request_json
-             FROM downloads
-             ORDER BY created_at DESC LIMIT ?2 OFFSET ?3"
-        };
+        self.history_page(query, &HistoryFilter::default(), limit, offset)
+    }
 
-        let mut stmt = conn.prepare(sql)?;
-        let pattern = query.map(|q| format!("%{q}%")).unwrap_or_default();
-        let rows = stmt.query_map(params![pattern, limit, offset], |row| {
+    /// A page of the history: what matches `query` and `filter`, in the
+    /// filter's order.
+    pub fn history_page(
+        &self,
+        query: Option<&str>,
+        filter: &HistoryFilter,
+        limit: u32,
+        offset: u32,
+    ) -> AppResult<Vec<HistoryEntry>> {
+        let conn = self.lock()?;
+        let mut clauses: Vec<String> = Vec::new();
+        let mut values: Vec<String> = Vec::new();
+        if let Some(query) = query {
+            values.push(format!("%{query}%"));
+            clauses.push(format!("(title LIKE ?{0} OR url LIKE ?{0})", values.len()));
+        }
+        if let Some(platform) = filter.platform {
+            values.push(platform_to_str(platform).to_string());
+            clauses.push(format!("platform = ?{}", values.len()));
+        }
+        // The container is the app's own word for the file, never the user's,
+        // so the lists go into the statement as they are.
+        let listed = |containers: &[&str]| {
+            containers.iter().map(|name| format!("'{name}'")).collect::<Vec<_>>().join(",")
+        };
+        match filter.kind {
+            Some(MediaKind::Audio) => clauses.push(format!("lower(container) IN ({})", listed(&AUDIO_CONTAINERS))),
+            Some(MediaKind::Image) => clauses.push(format!("lower(container) IN ({})", listed(&IMAGE_CONTAINERS))),
+            Some(MediaKind::Video) => clauses.push(format!(
+                "lower(container) NOT IN ({},{})",
+                listed(&AUDIO_CONTAINERS),
+                listed(&IMAGE_CONTAINERS)
+            )),
+            None => {}
+        }
+        let wanted = if clauses.is_empty() { String::new() } else { format!("WHERE {}", clauses.join(" AND ")) };
+        let order = if filter.oldest_first { "ASC" } else { "DESC" };
+        let sql = format!(
+            "SELECT id, url, title, platform, thumbnail_url, file_path, container,
+                    quality_label, file_size, created_at, status, request_json
+             FROM downloads {wanted}
+             ORDER BY created_at {order} LIMIT {limit} OFFSET {offset}"
+        );
+
+        let mut stmt = conn.prepare(&sql)?;
+        let rows = stmt.query_map(rusqlite::params_from_iter(values.iter()), |row| {
             let request_json: Option<String> = row.get(11)?;
             let file_path: String = row.get(5)?;
             Ok(HistoryEntry {
@@ -191,6 +223,22 @@ impl Database {
         })?;
 
         rows.collect::<Result<Vec<_>, _>>().map_err(Into::into)
+    }
+
+    /// The sites the history holds something from, for the filter that
+    /// offers them.
+    pub fn history_platforms(&self) -> AppResult<Vec<PlatformId>> {
+        let conn = self.lock()?;
+        let mut stmt = conn.prepare("SELECT DISTINCT platform FROM downloads ORDER BY platform")?;
+        let rows = stmt.query_map([], |row| row.get::<_, String>(0))?;
+        let mut platforms = Vec::new();
+        for row in rows {
+            let platform = platform_from_str(&row?);
+            if !platforms.contains(&platform) {
+                platforms.push(platform);
+            }
+        }
+        Ok(platforms)
     }
 
     /// The newest finished file of each of `urls` that is still on disk, as
@@ -375,6 +423,28 @@ fn read_settings(conn: &Connection) -> rusqlite::Result<Settings> {
     Ok(settings)
 }
 
+/// What a history entry is, told from the container it was saved in.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum MediaKind {
+    Video,
+    Audio,
+    Image,
+}
+
+const AUDIO_CONTAINERS: [&str; 13] =
+    ["mp3", "m4a", "aac", "wav", "flac", "opus", "ogg", "wma", "aiff", "alac", "ac3", "amr", "mka"];
+const IMAGE_CONTAINERS: [&str; 8] = ["jpg", "jpeg", "png", "webp", "gif", "avif", "heic", "bmp"];
+
+/// Which of the history to list, and in what order.
+#[derive(Debug, Clone, Default, serde::Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct HistoryFilter {
+    pub kind: Option<MediaKind>,
+    pub platform: Option<PlatformId>,
+    pub oldest_first: bool,
+}
+
 pub fn platform_to_str(platform: PlatformId) -> &'static str {
     platform.slug()
 }
@@ -540,6 +610,37 @@ mod tests {
             status: "completed".into(),
             request: None,
         }
+    }
+
+    #[test]
+    fn the_history_is_listed_by_kind_site_and_order() {
+        let dir = scratch("history-filter");
+        std::fs::create_dir_all(&dir).unwrap();
+        let db = Database::open(&dir.join("library.db")).unwrap();
+        let rows = [
+            (10, "mp4", PlatformId::Youtube),
+            (20, "MP3", PlatformId::Youtube),
+            (30, "jpg", PlatformId::Tiktok),
+            (40, "mkv", PlatformId::Tiktok),
+        ];
+        for (at, container, platform) in rows {
+            let row = HistoryEntry { container: container.into(), platform, ..entry(at, "x") };
+            db.history_insert(&row).unwrap();
+        }
+        let times = |filter: HistoryFilter, query: Option<&str>| -> Vec<i64> {
+            db.history_page(query, &filter, 10, 0).unwrap().iter().map(|row| row.created_at).collect()
+        };
+        let of = |kind| HistoryFilter { kind: Some(kind), ..HistoryFilter::default() };
+
+        assert_eq!(times(HistoryFilter::default(), None), [40, 30, 20, 10]);
+        assert_eq!(times(of(MediaKind::Video), None), [40, 10]);
+        assert_eq!(times(of(MediaKind::Audio), None), [20], "whatever its case");
+        assert_eq!(times(of(MediaKind::Image), None), [30]);
+        let tiktok = HistoryFilter { platform: Some(PlatformId::Tiktok), oldest_first: true, ..HistoryFilter::default() };
+        assert_eq!(times(tiktok, None), [30, 40]);
+        let both = HistoryFilter { platform: Some(PlatformId::Youtube), ..of(MediaKind::Video) };
+        assert_eq!(times(both, Some("at 1")), [10]);
+        assert_eq!(db.history_platforms().unwrap().len(), 2);
     }
 
     #[test]

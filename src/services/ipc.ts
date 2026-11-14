@@ -231,8 +231,17 @@ export const allowMediaPreview = (path: string) =>
 
 // -- history ---------------------------------------------------------------
 
-export const listHistory = (query?: string, limit?: number, offset?: number) =>
-  invoke<HistoryEntry[]>('list_history', { query, limit, offset });
+/** Which of the history to list, and in what order; everything, newest first, when left out. */
+export interface HistoryFilter {
+  kind?: 'video' | 'audio' | 'image' | null;
+  platform?: PlatformId | null;
+  oldestFirst?: boolean;
+}
+
+export const listHistory = (query?: string, limit?: number, offset?: number, filter?: HistoryFilter) =>
+  invoke<HistoryEntry[]>('list_history', { query, limit, offset, filter });
+/** The sites the history holds something from. */
+export const historyPlatforms = () => invoke<PlatformId[]>('history_platforms');
 /** How many entries `range` holds; the whole history when it is left out. */
 export const countHistory = (range?: HistoryRange) => invoke<number>('count_history', { range });
 export const deleteHistoryEntry = (id: number) => invoke<void>('delete_history_entry', { id });
