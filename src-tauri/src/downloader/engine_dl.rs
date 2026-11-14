@@ -17,6 +17,7 @@
 
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -143,8 +144,9 @@ async fn attempt(
     }
     clear_stale_part(options);
 
+    let run = Run::begin();
     let mut base = engine::base_args(settings);
-    base.extend(transfer_args(settings, options.section.is_some()));
+    base.extend(transfer_args(settings, options.section.is_some(), run.sharing));
     let args = download_args(options, base, cookies);
     engine::log_engine_invocation(&args);
 
@@ -281,18 +283,42 @@ async fn attempt(
     Ok(size)
 }
 
+/// Engine runs going at this moment.
+static RUNS: AtomicU32 = AtomicU32::new(0);
+
+/// One engine run, counted for as long as it lasts.
+struct Run {
+    /// How many runs were going when this one began, itself included.
+    sharing: u32,
+}
+
+impl Run {
+    fn begin() -> Self {
+        Self { sharing: RUNS.fetch_add(1, Ordering::AcqRel) + 1 }
+    }
+}
+
+impl Drop for Run {
+    fn drop(&mut self) {
+        RUNS.fetch_sub(1, Ordering::AcqRel);
+    }
+}
+
 /// A fragmented stream (HLS, DASH) over as many connections as a download may
-/// open. A section is fetched by FFmpeg, which takes no such option.
-fn transfer_args(settings: &Settings, sectioned: bool) -> Vec<String> {
+/// open. A section is fetched by FFmpeg, which takes no such option. `sharing`
+/// is how many engine runs are going, this one included.
+fn transfer_args(settings: &Settings, sectioned: bool, sharing: u32) -> Vec<String> {
     let mut args = Vec::new();
     if sectioned {
         return args;
     }
     // The engine is outside the app's shared budget and limits each of its
-    // connections, not the run. So one connection, on the share of the limit
-    // that leaves room for as many runs as may be going at once.
+    // connections, not the run. So one connection, on this run's share of the
+    // limit among the runs going as it starts: a run on its own has all of it.
+    // The share is fixed for the run, so one that started alone keeps the
+    // whole limit beside a later one until it ends.
     if settings.speed_limit_kb > 0 {
-        let share = settings.speed_limit_kb / settings.max_concurrent_downloads.max(1);
+        let share = settings.speed_limit_kb / sharing.clamp(1, settings.max_concurrent_downloads.max(1));
         args.push("--limit-rate".into());
         args.push(format!("{}K", share.max(1)));
         return args;
@@ -998,11 +1024,13 @@ mod tests {
             max_concurrent_downloads: 3,
             ..Settings::default()
         };
-        assert_eq!(transfer_args(&settings, false), ["--concurrent-fragments", "8"]);
+        assert_eq!(transfer_args(&settings, false, 1), ["--concurrent-fragments", "8"]);
 
         let limited = Settings { speed_limit_kb: 3000, ..settings.clone() };
-        assert_eq!(transfer_args(&limited, false), ["--limit-rate", "1000K"]);
-        assert!(transfer_args(&limited, true).is_empty(), "FFmpeg takes neither option");
+        assert_eq!(transfer_args(&limited, false, 1), ["--limit-rate", "3000K"], "alone, the whole limit");
+        assert_eq!(transfer_args(&limited, false, 3), ["--limit-rate", "1000K"]);
+        assert_eq!(transfer_args(&limited, false, 9), ["--limit-rate", "1000K"], "never more runs than may go");
+        assert!(transfer_args(&limited, true, 1).is_empty(), "FFmpeg takes neither option");
 
         // What the detail window is told is what the engine was asked for.
         assert_eq!(fragments_at_once(&settings, false), 8);
@@ -1010,7 +1038,7 @@ mod tests {
         assert_eq!(fragments_at_once(&settings, true), 1);
         let light = Settings { low_resource_mode: true, ..settings.clone() };
         assert_eq!(fragments_at_once(&light, false), 1);
-        assert!(transfer_args(&light, false).is_empty());
+        assert!(transfer_args(&light, false, 1).is_empty());
     }
 
     fn options(section: Option<KeptRange>, force_keyframes: bool) -> EngineDownload<'static> {
@@ -1441,23 +1469,23 @@ mod tests {
             low_resource_mode: false,
             ..Settings::default()
         };
-        let args = transfer_args(&settings, false);
+        let args = transfer_args(&settings, false, 1);
         assert_eq!(value_after(&args, "--concurrent-fragments").as_deref(), Some("8"));
 
         // A section is FFmpeg's to fetch, and FFmpeg takes no such option.
-        assert!(transfer_args(&settings, true).is_empty());
+        assert!(transfer_args(&settings, true, 1).is_empty());
 
         // One connection, or low-resource mode, says nothing at all.
         let single = Settings {
             connections_per_download: 1,
             ..Settings::default()
         };
-        assert!(transfer_args(&single, false).is_empty());
+        assert!(transfer_args(&single, false, 1).is_empty());
         let frugal = Settings {
             connections_per_download: 8,
             low_resource_mode: true,
             ..Settings::default()
         };
-        assert!(transfer_args(&frugal, false).is_empty());
+        assert!(transfer_args(&frugal, false, 1).is_empty());
     }
 }

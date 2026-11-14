@@ -862,7 +862,10 @@ export function App() {
             </AnimatePresence>
           </main>
         ) : (
-          <main ref={mainRef} className="relative z-10 min-h-0 flex-1 overflow-y-auto">
+          <main
+            ref={mainRef}
+            className="relative z-10 min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]"
+          >
             <AnimatePresence mode="wait">
               <motion.div
                 key={route}

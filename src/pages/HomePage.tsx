@@ -29,7 +29,7 @@ import {
 import { formatDay } from '@/lib/format';
 import { COLLAPSE, FADE, RISE, T, rise } from '@/lib/motion';
 import { IS_MOBILE } from '@/lib/platform';
-import { normalizeUrl } from '@/lib/url';
+import { linkIn, normalizeUrl } from '@/lib/url';
 import type { SettingsSection } from '@/pages/SettingsPage';
 import * as ipc from '@/services/ipc';
 import { useAnalysisStore } from '@/stores/useAnalysisStore';
@@ -236,7 +236,7 @@ export function HomePage({
   const pasteFromClipboard = useCallback(async () => {
     try {
       const text = await readText();
-      const normalized = text ? normalizeUrl(text) : null;
+      const normalized = text ? linkIn(text) : null;
       if (!normalized) return false;
       setUrl(normalized);
       startAnalysis(normalized);
@@ -271,7 +271,7 @@ export function HomePage({
 
       const text =
         event.dataTransfer?.getData('text/uri-list') || event.dataTransfer?.getData('text/plain');
-      const normalized = text ? normalizeUrl(text.split('\n')[0] ?? '') : null;
+      const normalized = text ? linkIn(text) : null;
       if (!normalized) return;
 
       setUrl(normalized);

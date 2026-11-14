@@ -16,6 +16,7 @@ import { PROBLEM_TEXT } from '@/lib/fileProblem';
 import { clampPercent, formatBytes, formatEta, formatSpeed } from '@/lib/format';
 import { COLLAPSE, LIST_ITEM } from '@/lib/motion';
 import { IS_MOBILE } from '@/lib/platform';
+import { qualityText } from '@/lib/qualityLabel';
 import type { DownloadStage, DownloadTask } from '@/types';
 
 interface DownloadCardProps {
@@ -118,7 +119,7 @@ export const DownloadCard = memo(function DownloadCard({
               {/* Held to a width so the values after it do not shuffle sideways
                   every time a digit is added. */}
               {progress.percent != null && (
-                <span className="min-w-[34px]">{percent.toFixed(0)}%</span>
+                <span className="min-w-[34px]">{Math.floor(percent)}%</span>
               )}
               {!TRANSFER_STAGES.has(progress.stage) && (
                 <span className="min-w-0 max-w-full truncate">
@@ -154,7 +155,7 @@ export const DownloadCard = memo(function DownloadCard({
         {status === 'paused' && (
           <span className={cn(LINE, progress.percent != null ? 'mt-1' : 'mt-0.5')}>
             <span>{t('downloads.paused')}</span>
-            {progress.percent != null && <span>{percent.toFixed(0)}%</span>}
+            {progress.percent != null && <span>{Math.floor(percent)}%</span>}
             {progress.receivedBytes > 0 && (
               <span>
                 {formatBytes(progress.receivedBytes)}
@@ -172,7 +173,7 @@ export const DownloadCard = memo(function DownloadCard({
               </span>
             ) : (
               <>
-                <span className="min-w-0 max-w-full truncate">{task.formatLabel}</span>
+                <span className="min-w-0 max-w-full truncate">{qualityText(task.formatLabel)}</span>
                 {progress.totalBytes != null && progress.totalBytes > 0 && (
                   <span>{formatBytes(progress.totalBytes)}</span>
                 )}

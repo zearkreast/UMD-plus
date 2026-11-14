@@ -459,7 +459,7 @@ export const tr: Record<TranslationKey, string> = {
     'Herkese açık medya bilgilerini ve akış adreslerini okur. Ayrı bir işlem olarak yerelde çalışır.',
   'settings.ffmpeg': 'FFmpeg',
   'settings.ffmpegHint': 'Ayrı ses ve video akışlarını birleştirir, dönüştürmeyi yapar.',
-  'settings.jsRuntime': 'Oturum açıkken indirme desteği',
+  'settings.jsRuntime': 'YouTube oturumu için JavaScript motoru',
   'settings.jsRuntimeHint':
     "Yaklaşık 40 MB'lık küçük bir JavaScript motoru, bir kez indirilir. YouTube, oturum açılmış bir isteğe video biçimlerini karıştırılmış veriyor; indirme başlayabilsin diye onları çözen şey bu.",
   'settings.jsRuntimeOptional':
@@ -501,7 +501,7 @@ export const tr: Record<TranslationKey, string> = {
   'settings.hotkeyRecord': 'Tuşlara bas…',
   'settings.hotkeyReset': 'Sıfırla',
   'settings.hotkeyConflict': 'Zaten {action} tarafından kullanılıyor.',
-  'hotkey.pasteUrl': 'URL yapıştır',
+  'hotkey.pasteUrl': 'Bağlantı yapıştır',
   'hotkey.download': 'İndirmeyi başlat',
   'hotkey.openDownloads': 'İndirmeleri aç',
   'hotkey.openHistory': 'Geçmişi aç',
@@ -725,7 +725,7 @@ export const tr: Record<TranslationKey, string> = {
     "Hesap TikTok'a 18 yaşından küçük görünüyor olabilir ya da gönderi yalnızca takipçilere açık.",
   'error.notFound.title': 'Bu medya artık mevcut değil',
   'error.notFound.message': 'Gönderi silinmiş veya gizli yapılmış olabilir.',
-  'error.streamLink.title': 'Bu yayın linki tek başına açılmıyor',
+  'error.streamLink.title': 'Bu yayın bağlantısı tek başına açılmıyor',
   'error.streamLink.message': 'Bu tür bağlantılar çabuk geçersiz olur veya yalnızca kendi sayfasında çalışır. Videoyu tarayıcıda oynat ve uzantıdan gönder.',
   'error.fileMissing.title': 'Dosya taşınmış veya silinmiş',
   'error.fileMissing.message': 'Kaydedildiği yerde artık yok.',
