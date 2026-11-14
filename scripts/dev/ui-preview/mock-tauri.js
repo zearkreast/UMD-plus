@@ -1245,7 +1245,12 @@
       changed();
     },
     reorder_download: () => null,
-    set_download_order: () => null,
+    set_download_order: ({ ids }) => {
+      const first = ids.map((id) => tasks.find((entry) => entry.id === id)).filter(Boolean);
+      tasks = [...first, ...tasks.filter((entry) => !ids.includes(entry.id))];
+      changed();
+      return null;
+    },
 
     // The real catalogue, in the backend's order (media/converter.rs).
     convert_formats: () => {

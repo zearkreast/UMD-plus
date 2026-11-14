@@ -1,6 +1,12 @@
-import { AnimatePresence, motion, useReducedMotionConfig } from 'motion/react';
-import { Clock, Download, FolderOpen, Pause, Play } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import {
+  AnimatePresence,
+  motion,
+  Reorder,
+  useDragControls,
+  useReducedMotionConfig,
+} from 'motion/react';
+import { Clock, Download, FolderOpen, GripVertical, Pause, Play } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { create } from 'zustand';
 
 import { DownloadCard } from '@/components/downloads/DownloadCard';
@@ -10,7 +16,7 @@ import { Button } from '@/components/ui/Button';
 import { Dropdown } from '@/components/ui/Dropdown';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { IconButton } from '@/components/ui/IconButton';
-import { ListGroup } from '@/components/ui/ListGroup';
+import { ListGroup, ListGroupLabel } from '@/components/ui/ListGroup';
 import { Modal } from '@/components/ui/Modal';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Progress } from '@/components/ui/Progress';
@@ -18,6 +24,7 @@ import { Segmented } from '@/components/ui/Segmented';
 import { useTranslation } from '@/i18n';
 import { isBusy, summarizeActivity } from '@/lib/activity';
 import { cn } from '@/lib/cn';
+import { groupDownloads, placesInLine, reconcileOrder } from '@/lib/downloadGroups';
 import { formatEta, formatSpeed } from '@/lib/format';
 import { RISE, SIDEWAYS } from '@/lib/motion';
 import { IS_MOBILE } from '@/lib/platform';
@@ -198,13 +205,12 @@ function CurrentDownloads({ onGoHome }: { onGoHome: () => void }) {
   const { t } = useTranslation();
   const tasks = useQueueStore((state) => state.tasks);
 
-  // One list, newest first, whatever state a row is in. A task's creation time
-  // never changes, so a progress tick rebuilds this array in the same order and
-  // no row moves; the sort is stable, so the items of a gallery, queued in the
-  // same instant, stay in the order they were queued.
-  const { rows, anyRunning, anyQueued, anyPaused, anyFinished } = useMemo(
+  // Three lists, by what a row is doing. A progress tick changes no row's
+  // status or place in the queue, so it rebuilds each list in the same order
+  // and no row moves.
+  const { groups, anyRunning, anyQueued, anyPaused, anyFinished } = useMemo(
     () => ({
-      rows: [...tasks].sort((a, b) => b.createdAt - a.createdAt),
+      groups: groupDownloads(tasks),
       anyRunning: selectActive(tasks).length > 0,
       anyQueued: tasks.some((task) => task.status === 'queued'),
       anyPaused: tasks.some((task) => task.status === 'paused'),
@@ -283,7 +289,7 @@ function CurrentDownloads({ onGoHome }: { onGoHome: () => void }) {
         )}
       </AnimatePresence>
 
-      {rows.length === 0 ? (
+      {tasks.length === 0 ? (
         <EmptyState
           icon={Download}
           title={t('downloads.emptyTitle')}
@@ -295,19 +301,186 @@ function CurrentDownloads({ onGoHome }: { onGoHome: () => void }) {
           }
         />
       ) : (
-        // `relative` gives a row that is leaving something to be positioned
-        // against while the rows under it close the gap.
-        <ListGroup inset={TEXT_INSET} className="relative">
-          <AnimatePresence initial={false} mode={LEAVING}>
-            {rows.map((task) => (
-              <DownloadCard key={task.id} task={task} {...HANDLERS} />
-            ))}
-          </AnimatePresence>
-        </ListGroup>
+        <div className="flex flex-col gap-5">
+          {groups.running.length > 0 && (
+            <DownloadGroup label={t('downloads.active')} count={groups.running.length}>
+              <Rows tasks={groups.running} />
+            </DownloadGroup>
+          )}
+          {groups.pending.length > 0 && (
+            <DownloadGroup label={t('downloads.pendingGroup')} count={groups.pending.length}>
+              <PendingRows tasks={groups.pending} />
+            </DownloadGroup>
+          )}
+          {groups.finished.length > 0 && (
+            <DownloadGroup label={t('downloads.finishedGroup')} count={groups.finished.length}>
+              <FinishedRows tasks={groups.finished} />
+            </DownloadGroup>
+          )}
+        </div>
       )}
 
       <DownloadDetailDialog />
     </>
+  );
+}
+
+function DownloadGroup({
+  label,
+  count,
+  children,
+}: {
+  label: string;
+  count: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <section aria-label={label}>
+      <ListGroupLabel className="tabular mb-2">
+        {label} · {count}
+      </ListGroupLabel>
+      {children}
+    </section>
+  );
+}
+
+function Rows({ tasks }: { tasks: DownloadTask[] }) {
+  return (
+    // `relative` gives a row that is leaving something to be positioned
+    // against while the rows under it close the gap.
+    <ListGroup inset={TEXT_INSET} className="relative">
+      <AnimatePresence initial={false} mode={LEAVING}>
+        {tasks.map((task) => (
+          <DownloadCard key={task.id} task={task} {...HANDLERS} />
+        ))}
+      </AnimatePresence>
+    </ListGroup>
+  );
+}
+
+/** How many finished rows show before the rest fold away. */
+const FINISHED_SHOWN = 5;
+
+/**
+ * What is over is a record, and a long one pushes nothing useful off the
+ * screen by being short: the latest few show, the rest on request.
+ */
+function FinishedRows({ tasks }: { tasks: DownloadTask[] }) {
+  const { t } = useTranslation();
+  const [all, setAll] = useState(false);
+  const hidden = all ? 0 : Math.max(0, tasks.length - FINISHED_SHOWN);
+
+  return (
+    <>
+      <Rows tasks={hidden > 0 ? tasks.slice(0, FINISHED_SHOWN) : tasks} />
+      {hidden > 0 && (
+        <div className="mt-2 flex justify-center">
+          <Button size="sm" variant="ghost" onClick={() => setAll(true)}>
+            {t('downloads.showRest', { n: hidden })}
+          </Button>
+        </div>
+      )}
+    </>
+  );
+}
+
+/** The handle and the number a waiting row starts with, before its thumbnail. */
+const PLACE_WIDTH = 46;
+
+/**
+ * What is still to run, in the order the queue will start it. A pointer drags
+ * a row by its handle to change that order; a phone shows the order and
+ * changes it with nothing, having no room for a handle beside the title.
+ *
+ * The order shown is the user's own while they drag and until the backend
+ * sends the list back in it; any other change to the list takes it over again.
+ */
+function PendingRows({ tasks }: { tasks: DownloadTask[] }) {
+  const ids = useMemo(() => tasks.map((task) => task.id), [tasks]);
+  const [dragged, setDragged] = useState<string[] | null>(null);
+  const latest = useRef<string[]>(ids);
+
+  const key = ids.join('|');
+  useEffect(() => setDragged(null), [key]);
+
+  const order = dragged ? reconcileOrder(dragged, ids) : ids;
+  latest.current = order;
+  const byId = new Map(tasks.map((task) => [task.id, task]));
+  const shown = order.map((id) => byId.get(id)!);
+  const places = placesInLine(shown);
+
+  if (IS_MOBILE) {
+    return (
+      <ListGroup inset={TEXT_INSET} className="relative">
+        <AnimatePresence initial={false} mode={LEAVING}>
+          {shown.map((task) => (
+            <DownloadCard key={task.id} task={task} {...HANDLERS} />
+          ))}
+        </AnimatePresence>
+      </ListGroup>
+    );
+  }
+
+  return (
+    <ListGroup inset={TEXT_INSET + PLACE_WIDTH}>
+      <Reorder.Group as="div" axis="y" values={order} onReorder={setDragged}>
+        {shown.map((task) => (
+          <PendingRow
+            key={task.id}
+            task={task}
+            place={places.get(task.id) ?? null}
+            onDropped={() => void ipc.setDownloadOrder(latest.current)}
+          />
+        ))}
+      </Reorder.Group>
+    </ListGroup>
+  );
+}
+
+function PendingRow({
+  task,
+  place,
+  onDropped,
+}: {
+  task: DownloadTask;
+  place: number | null;
+  onDropped: () => void;
+}) {
+  const { t } = useTranslation();
+  const controls = useDragControls();
+
+  return (
+    <Reorder.Item
+      as="div"
+      value={task.id}
+      dragListener={false}
+      dragControls={controls}
+      onDragEnd={onDropped}
+      className="pending-row relative flex items-center bg-surface"
+    >
+      <button
+        type="button"
+        aria-label={t('downloads.dragToReorder')}
+        title={t('downloads.dragToReorder')}
+        onPointerDown={(event) => controls.start(event)}
+        className="ml-1.5 flex h-9 w-5 shrink-0 cursor-grab touch-none items-center justify-center rounded-md text-fg-faint hover:text-fg-muted active:cursor-grabbing"
+      >
+        <GripVertical size={14} />
+      </button>
+      <span
+        aria-hidden={place == null}
+        className={cn(
+          'tabular flex size-5 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold',
+          place === 1 ? 'bg-accent-soft text-accent' : 'bg-fill text-fg-muted',
+          place == null && 'invisible',
+        )}
+      >
+        {place ?? 0}
+      </span>
+      <div className="-ml-2.5 min-w-0 flex-1">
+        <DownloadCard task={task} {...HANDLERS} />
+      </div>
+    </Reorder.Item>
   );
 }
 
