@@ -1,6 +1,16 @@
 import { AnimatePresence, motion } from 'motion/react';
-import { Activity, ArrowUpToLine, FolderOpen, Pause, Play, RotateCw, Share, X } from 'lucide-react';
-import { memo, useState } from 'react';
+import {
+  Activity,
+  ArrowUpToLine,
+  FolderOpen,
+  Pause,
+  Play,
+  RotateCw,
+  Share,
+  WifiOff,
+  X,
+} from 'lucide-react';
+import { memo, useEffect, useState } from 'react';
 
 import { IconButton } from '@/components/ui/IconButton';
 import { ROW_LINE } from '@/components/ui/ListGroup';
@@ -17,6 +27,7 @@ import { clampPercent, formatBytes, formatEta, formatSpeed } from '@/lib/format'
 import { COLLAPSE, LIST_ITEM } from '@/lib/motion';
 import { IS_MOBILE } from '@/lib/platform';
 import { qualityText } from '@/lib/qualityLabel';
+import * as ipc from '@/services/ipc';
 import type { DownloadStage, DownloadTask } from '@/types';
 
 interface DownloadCardProps {
@@ -39,6 +50,31 @@ const TRANSFER_STAGES: ReadonlySet<DownloadStage> = new Set(['video', 'audio', '
 const ACTION_SIZE = IS_MOBILE ? 'sm' : 'md';
 
 const LINE = cn(ROW_LINE, 'gap-x-3');
+
+/**
+ * What a download says while the line is down: that it is waiting, and how
+ * long until it tries again. The backend sends the moment once, so the
+ * seconds are counted here.
+ */
+function WaitingForNetwork({ until }: { until: number }) {
+  const { t } = useTranslation();
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const seconds = Math.max(0, Math.ceil((until - now) / 1000));
+
+  return (
+    <>
+      <span className="flex min-w-0 items-center gap-1.5 text-warning">
+        <WifiOff size={13} className="shrink-0" />
+        <span className="truncate">{t('downloads.waitingForNetwork')}</span>
+      </span>
+      {seconds > 0 && <span>{t('downloads.retryIn', { n: seconds })}</span>}
+    </>
+  );
+}
 
 /**
  * One row of the downloads list: thumbnail, title, a single line saying what
@@ -66,6 +102,7 @@ export const DownloadCard = memo(function DownloadCard({
   const isActive = status === 'downloading' || status === 'preparing' || status === 'processing';
   const isDone = status === 'completed';
   const isAbandoned = status === 'failed' || status === 'canceled';
+  const waitingUntil = isActive ? (progress.waitingForNetwork ?? null) : null;
   const outputPath = isDone ? task.outputPath : null;
   // A finished row is a button that opens its file, which is a big target to
   // press for nothing when the file has since been moved or deleted. The
@@ -110,9 +147,9 @@ export const DownloadCard = memo(function DownloadCard({
         {isActive && (
           <>
             <Progress
-              value={progress.percent == null ? null : percent}
+              value={progress.percent == null ? (waitingUntil == null ? null : 0) : percent}
               label={task.title}
-              tone="live"
+              tone={waitingUntil == null ? 'live' : 'muted'}
               className="mt-1.5"
             />
             <span className={cn(LINE, 'mt-1')}>
@@ -121,12 +158,13 @@ export const DownloadCard = memo(function DownloadCard({
               {progress.percent != null && (
                 <span className="min-w-[34px]">{Math.floor(percent)}%</span>
               )}
-              {!TRANSFER_STAGES.has(progress.stage) && (
+              {waitingUntil != null && <WaitingForNetwork until={waitingUntil} />}
+              {waitingUntil == null && !TRANSFER_STAGES.has(progress.stage) && (
                 <span className="min-w-0 max-w-full truncate">
                   {t(`stage.${progress.stage}` as TranslationKey)}
                 </span>
               )}
-              {progress.speedBps > 0 && (
+              {waitingUntil == null && progress.speedBps > 0 && (
                 <>
                   <span className={cn(!IS_MOBILE && 'min-w-[64px]')}>
                     {formatSpeed(progress.speedBps)}
@@ -280,6 +318,14 @@ export const DownloadCard = memo(function DownloadCard({
               label={t('downloads.openDetails')}
               size={ACTION_SIZE}
               onClick={details}
+            />
+          )}
+          {waitingUntil != null && (
+            <IconButton
+              icon={<RotateCw size={15} />}
+              label={t('downloads.tryNow')}
+              size={ACTION_SIZE}
+              onClick={() => void ipc.retryWaitingDownloads()}
             />
           )}
           {/* A download waiting for a free slot can be sent to the front of

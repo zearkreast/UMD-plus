@@ -247,6 +247,7 @@ pub fn run() {
             commands::enqueue_download,
             commands::enqueue_gallery,
             commands::pause_download,
+            commands::retry_waiting_downloads,
             commands::resume_download,
             commands::cancel_download,
             commands::retry_download,

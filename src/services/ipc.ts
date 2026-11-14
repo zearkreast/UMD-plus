@@ -146,6 +146,8 @@ export const enqueueDownload = (request: DownloadRequest) =>
 export const enqueueGallery = (request: DownloadRequest, entries?: number[]) =>
   invoke<DownloadTask[]>('enqueue_gallery', { request, entries: entries ?? null });
 export const pauseDownload = (id: string) => invoke<void>('pause_download', { id });
+/** Try the line again now, for every download that is waiting for it. */
+export const retryWaitingDownloads = () => invoke<void>('retry_waiting_downloads');
 export const resumeDownload = (id: string) => invoke<void>('resume_download', { id });
 export const cancelDownload = (id: string) => invoke<void>('cancel_download', { id });
 export const retryDownload = (id: string) => invoke<void>('retry_download', { id });

@@ -34,6 +34,30 @@ pub const EVENT_OUTLOOK: &str = "download://outlook";
 /// when the window opens or closes.
 const CLOCK_TICK: Duration = Duration::from_secs(20);
 
+/// How long a download waits before trying a line that was down again: soon
+/// at first, for a line that only blinked, then once a minute for as long as
+/// it stays down.
+const LINE_WAITS: [u64; 4] = [5, 15, 30, 60];
+
+fn line_wait(waited: u32) -> Duration {
+    let index = (waited as usize).min(LINE_WAITS.len() - 1);
+    Duration::from_secs(LINE_WAITS[index])
+}
+
+/// A failure that a line being down would explain. Not one that says what is
+/// wrong with the download itself -- a missing tool, a full disk, a post that
+/// is gone -- which waiting for the line would only put off.
+fn may_be_the_line(err: &AppError) -> bool {
+    matches!(
+        err,
+        AppError::Network(_)
+            | AppError::Offline(_)
+            | AppError::NetworkBlocked(_)
+            | AppError::Engine(_)
+            | AppError::Other(_)
+    )
+}
+
 /// What the queue is waiting for and what comes after it, for the interface.
 #[derive(Debug, Clone, Default, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -67,6 +91,8 @@ pub struct QueueManager {
     /// The user started the queue outside its hours, until it runs out.
     outside_hours: AtomicBool,
     ending: Mutex<Ending>,
+    /// Ends the wait of every download that is waiting for the line.
+    try_line: Notify,
 }
 
 impl QueueManager {
@@ -82,6 +108,7 @@ impl QueueManager {
             held: Mutex::new(HashSet::new()),
             outside_hours: AtomicBool::new(false),
             ending: Mutex::new(Ending::default()),
+            try_line: Notify::new(),
         })
     }
 
@@ -121,13 +148,15 @@ impl QueueManager {
     /// Restore whatever was in flight when the app last closed. Anything that
     /// was mid-download comes back paused rather than silently resuming: the
     /// user did not ask for network activity at startup. With a schedule on
-    /// they did, and it goes back to waiting for its hours.
+    /// they did, and it goes back to waiting for its hours; so they did by
+    /// asking for the queue to carry on at launch.
     pub fn restore(self: &Arc<Self>) {
         let Ok(mut restored) = self.db.queue_load() else {
             return;
         };
 
-        let resting = if self.settings().schedule_enabled {
+        let settings = self.settings();
+        let resting = if settings.schedule_enabled || settings.resume_on_launch {
             DownloadStatus::Queued
         } else {
             DownloadStatus::Paused
@@ -572,6 +601,7 @@ impl QueueManager {
         let settings = self.settings();
         let max_attempts = settings.auto_retry_count + 1;
         let mut attempt = 0u32;
+        let mut line_waits = 0u32;
 
         let outcome = loop {
             attempt += 1;
@@ -579,6 +609,7 @@ impl QueueManager {
                 current.attempt = attempt;
                 current.status = DownloadStatus::Downloading;
                 current.error = None;
+                current.progress.waiting_for_network = None;
             });
 
             let mut sink = {
@@ -601,6 +632,28 @@ impl QueueManager {
             match result {
                 Ok(outcome) => break Ok(outcome),
                 Err(AppError::Canceled) => break Err(AppError::Canceled),
+                // With the line down the failure is the line's, not the
+                // download's: it costs no attempt, and the download waits in
+                // its place for as long as the line takes. Failing instead
+                // let a queue left to itself run out in seconds, and whatever
+                // was asked for after it happen with nothing downloaded.
+                Err(err)
+                    if may_be_the_line(&err)
+                        && !control.interrupted()
+                        && !crate::net::line_is_up(&settings).await =>
+                {
+                    attempt -= 1;
+                    log_info!(
+                        "queue",
+                        "task {} stopped with the line down ({}); waiting for it",
+                        task.id,
+                        err.code()
+                    );
+                    if !self.wait_for_line(&task.id, line_wait(line_waits), &control).await {
+                        break Err(AppError::Canceled);
+                    }
+                    line_waits += 1;
+                }
                 Err(err) => {
                     // Only retry things that can plausibly succeed next time,
                     // and never fight a user who is trying to stop the task.
@@ -634,6 +687,39 @@ impl QueueManager {
                 self.fail(&task.id, err)
             }
         }
+    }
+
+    /// Hold a download for `wait`, saying so on its row. Ends early when the
+    /// user asks for a try now. Says whether the download is still wanted: a
+    /// pause or a cancel during the wait ends it.
+    async fn wait_for_line(&self, id: &str, wait: Duration, control: &TaskControl) -> bool {
+        let until = util::now_ms() + wait.as_millis() as i64;
+        self.update_task(id, |task| {
+            task.progress.waiting_for_network = Some(until);
+            task.progress.speed_bps = 0.0;
+            task.progress.eta_sec = None;
+        });
+        self.emit_task(id);
+
+        let asked = self.try_line.notified();
+        tokio::pin!(asked);
+        let deadline = tokio::time::sleep(wait);
+        tokio::pin!(deadline);
+        loop {
+            if control.interrupted() {
+                return false;
+            }
+            tokio::select! {
+                _ = &mut asked => return !control.interrupted(),
+                _ = &mut deadline => return !control.interrupted(),
+                _ = tokio::time::sleep(Duration::from_millis(500)) => {}
+            }
+        }
+    }
+
+    /// Try the line again now, for every download waiting for it.
+    pub fn try_line_now(&self) {
+        self.try_line.notify_waiters();
     }
 
     fn complete(self: &Arc<Self>, id: &str, outcome: downloader::DownloadOutcome) {
@@ -839,6 +925,22 @@ pub fn require_task(manager: &QueueManager, id: &str) -> AppResult<DownloadTask>
 mod tests {
     use super::*;
     use crate::model::{DownloadMode, QualityPreference, WatermarkPreference};
+
+    #[test]
+    fn a_line_that_stays_down_is_tried_once_a_minute() {
+        let waits: Vec<u64> = (0..6).map(|waited| line_wait(waited).as_secs()).collect();
+        assert_eq!(waits, [5, 15, 30, 60, 60, 60]);
+    }
+
+    #[test]
+    fn only_a_failure_the_line_explains_waits_for_it() {
+        assert!(may_be_the_line(&AppError::Network("connection reset".into())));
+        assert!(may_be_the_line(&AppError::Offline("no route".into())));
+        assert!(may_be_the_line(&AppError::Engine("ERROR: unable to download".into())));
+        assert!(!may_be_the_line(&AppError::DiskFull));
+        assert!(!may_be_the_line(&AppError::Canceled));
+        assert!(!may_be_the_line(&AppError::EngineMissing));
+    }
 
     fn task(id: &str, status: DownloadStatus) -> DownloadTask {
         DownloadTask {

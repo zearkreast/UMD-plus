@@ -130,6 +130,7 @@ impl Aggregator {
             // against that stream, not against the whole download.
             segments: sample.segments.clone(),
             fragments_at_once: None,
+            waiting_for_network: None,
         }
     }
 
@@ -153,6 +154,7 @@ impl Aggregator {
             resumable: false,
             segments: Vec::new(),
             fragments_at_once: None,
+            waiting_for_network: None,
         }
     }
 }

@@ -492,6 +492,12 @@ pub fn pause_download(state: State<'_, AppState>, id: String) {
     state.queue.pause(&id);
 }
 
+/// Try the line again now, rather than when the wait runs out.
+#[tauri::command]
+pub fn retry_waiting_downloads(state: State<'_, AppState>) {
+    state.queue.try_line_now();
+}
+
 #[tauri::command]
 pub fn resume_download(state: State<'_, AppState>, id: String) {
     state.queue.resume(&id);

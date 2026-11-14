@@ -24,6 +24,8 @@ export interface Activity {
    * by side, so the longest is the one that decides. Null while none can say.
    */
   etaSec: number | null;
+  /** Everything running is held by a line that is down. */
+  offline: boolean;
 }
 
 const RUNNING = new Set<DownloadTask['status']>(['preparing', 'downloading', 'processing']);
@@ -38,6 +40,7 @@ export function summarizeActivity(tasks: readonly DownloadTask[]): Activity {
   let percentSum = 0;
   let percentCount = 0;
   let etaSec: number | null = null;
+  let held = 0;
 
   for (const task of tasks) {
     if (task.status === 'queued') waiting += 1;
@@ -46,6 +49,7 @@ export function summarizeActivity(tasks: readonly DownloadTask[]): Activity {
 
     running += 1;
     const { progress } = task;
+    if (progress.waitingForNetwork != null) held += 1;
     if (Number.isFinite(progress.speedBps) && progress.speedBps > 0) speedBps += progress.speedBps;
 
     if (progress.totalBytes != null && progress.totalBytes > 0) {
@@ -64,7 +68,7 @@ export function summarizeActivity(tasks: readonly DownloadTask[]): Activity {
   const percent =
     total > 0 ? (received / total) * 100 : percentCount > 0 ? percentSum / percentCount : null;
 
-  return { running, waiting, paused, speedBps, percent, etaSec };
+  return { running, waiting, paused, speedBps, percent, etaSec, offline: running > 0 && held === running };
 }
 
 /** Whether there is anything at all to report. */

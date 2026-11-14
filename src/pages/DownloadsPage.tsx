@@ -384,7 +384,7 @@ function QueueSummary({
             ) : (
               <span>
                 {running
-                  ? t('activity.starting')
+                  ? t(activity.offline ? 'downloads.waitingForNetwork' : 'activity.starting')
                   : activity.waiting > 0
                     ? t('activity.queuedOnly')
                     : t('activity.pausedOnly')}
