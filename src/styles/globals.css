@@ -413,6 +413,9 @@
      edge to edge. It is painted as the row's background image: that needs no
      positioning on the row and no extra element, and a hover fill, which only
      sets the background colour, shows through beneath it. */
+  /* The waiting rows sit one level down, inside the list that reorders
+     them, and are divided the same way. */
+  .list-group .pending-row + .pending-row,
   .list-group > * + * {
     background-image: linear-gradient(var(--border), var(--border));
     background-size: calc(100% - var(--list-inset, 16px)) 1px;

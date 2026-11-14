@@ -129,6 +129,10 @@ export const en = {
   // The first half of Downloads on a phone, beside History.
   'downloads.active': 'Active',
   'downloads.queued': 'Queued',
+  'downloads.pendingGroup': 'Waiting',
+  'downloads.finishedGroup': 'Finished',
+  'downloads.showRest': 'Show {n} more',
+  'downloads.dragToReorder': 'Drag to reorder',
   'downloads.emptyTitle': 'Nothing downloading',
   'downloads.emptyBody': 'Paste a link on Home to get started.',
   'downloads.goHome': 'Go to Home',
