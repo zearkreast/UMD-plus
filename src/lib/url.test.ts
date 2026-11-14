@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { displayLink, normalizeUrl } from './url';
+import { displayLink, linkIn, normalizeUrl } from './url';
 
 describe('displayLink', () => {
   it('drops the scheme, the www and a trailing slash', () => {
@@ -25,5 +25,24 @@ describe('displayLink', () => {
   it('leaves what it cannot read as it was', () => {
     expect(displayLink('https://example.com/100%')).toBe('example.com/100%');
     expect(displayLink('  not a link ')).toBe('not a link');
+  });
+});
+
+describe('the link in a pasted text', () => {
+  it('is the first of two on two lines, not the two run together', () => {
+    expect(linkIn('https://youtu.be/aaa\nhttps://youtu.be/bbb')).toBe('https://youtu.be/aaa');
+    expect(linkIn('https://youtu.be/aaa\r\nhttps://www.tiktok.com/@x/video/1')).toBe(
+      'https://youtu.be/aaa',
+    );
+  });
+
+  it('is found among the words around it', () => {
+    expect(linkIn('Şu videoya bak https://youtu.be/aaa')).toBe('https://youtu.be/aaa');
+  });
+
+  it('may be a bare address', () => {
+    expect(linkIn('  youtu.be/aaa  ')).toBe('https://youtu.be/aaa');
+    expect(linkIn('not a link at all')).toBeNull();
+    expect(linkIn('')).toBeNull();
   });
 });

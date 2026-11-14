@@ -1,5 +1,6 @@
 import type { DropdownOption } from '@/components/ui/Dropdown';
 import { getLanguage, translate } from '@/i18n';
+import { qualityText } from '@/lib/qualityLabel';
 import { formatBitrate, formatBytes, prettyCodec } from '@/lib/format';
 import type { DownloadMode, MediaFormat, MediaMetadata, QualityPreference } from '@/types';
 
@@ -338,8 +339,8 @@ export function videoStreamOptions(
     (format) => ({
       value: format.id,
       label: format.hasAudio
-        ? translate('options.withSound', { quality: format.qualityLabel })
-        : format.qualityLabel,
+        ? translate('options.withSound', { quality: qualityText(format.qualityLabel) })
+        : qualityText(format.qualityLabel),
       description: describeStream(format),
       meta: sizeLabel(format),
     }),
@@ -361,7 +362,7 @@ export function audioStreamOptions(
     apart.length > 0
       ? apart.map((format) => ({
           value: format.id,
-          label: format.qualityLabel,
+          label: qualityText(format.qualityLabel),
           description: describeStream(format),
           meta: sizeLabel(format),
         }))
@@ -403,7 +404,7 @@ function borrowedSoundOptions(
     pool,
     (format) => ({
       value: format.id,
-      label: translate('options.soundOf', { quality: format.qualityLabel }),
+      label: translate('options.soundOf', { quality: qualityText(format.qualityLabel) }),
       description: describeSound(format),
       meta: sizeLabel(format),
     }),

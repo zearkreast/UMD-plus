@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatCount, formatUploadDate } from './format';
+import { formatCount, formatFrameTimecode, formatUploadDate } from './format';
 
 describe('formatCount', () => {
   it('keeps small figures whole', () => {
@@ -38,5 +38,26 @@ describe('formatUploadDate', () => {
   it('gives nothing for what is not a date', () => {
     expect(formatUploadDate(null, 'en')).toBeNull();
     expect(formatUploadDate('soon', 'en')).toBeNull();
+  });
+});
+
+describe('a position to the frame', () => {
+  it('keeps the clock at a rate that is not a whole number', () => {
+    expect(formatFrameTimecode(3600, 29.97)).toBe('1:00:00:00');
+    expect(formatFrameTimecode(600, 23.976)).toBe('0:10:00:00');
+    expect(formatFrameTimecode(3600, 59.94)).toBe('1:00:00:00');
+  });
+
+  it('counts frames from zero within their second', () => {
+    expect(formatFrameTimecode(0, 30)).toBe('0:00:00:00');
+    expect(formatFrameTimecode(1 / 30, 30)).toBe('0:00:00:01');
+    expect(formatFrameTimecode(29 / 30, 30)).toBe('0:00:00:29');
+    expect(formatFrameTimecode(1, 30)).toBe('0:00:01:00');
+    expect(formatFrameTimecode(20, 25)).toBe('0:00:20:00');
+    expect(formatFrameTimecode(1.5, 29.97)).toBe('0:00:01:15');
+  });
+
+  it('falls back to tenths without a rate', () => {
+    expect(formatFrameTimecode(12.3, null)).toBe('00:12.3');
   });
 });

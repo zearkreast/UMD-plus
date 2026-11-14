@@ -98,9 +98,10 @@ export function formatFrameTimecode(
   // Rounded to the frame first: rounding the seconds and the frame separately
   // turns the last frame of a second into frame 30 of that second.
   const frames = Math.round(totalSeconds * fps);
-  const perSecond = Math.round(fps);
-  const whole = Math.floor(frames / perSecond);
-  const frame = frames % perSecond;
+  // Seconds by the clock, not by a rounded rate: counting 30 frames to the
+  // second of a 29.97 fps file reads an hour of it as 59:56.
+  const whole = Math.floor(frames / fps + 1e-9);
+  const frame = Math.min(Math.max(Math.round(frames - whole * fps), 0), Math.ceil(fps) - 1);
 
   const seconds = whole % 60;
   const minutes = Math.floor(whole / 60) % 60;

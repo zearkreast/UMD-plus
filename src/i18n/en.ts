@@ -464,7 +464,7 @@ export const en = {
     'Reads public metadata and stream URLs. Runs locally as a separate process.',
   'settings.ffmpeg': 'FFmpeg',
   'settings.ffmpegHint': 'Merges separate audio and video streams and handles conversion.',
-  'settings.jsRuntime': 'Support for signed-in downloads',
+  'settings.jsRuntime': 'JavaScript engine for YouTube sign-in',
   'settings.jsRuntimeHint':
     'A small JavaScript engine, about 40 MB, downloaded once. YouTube answers a signed-in request with scrambled video formats, and this is what unscrambles them before a download can start.',
   'settings.jsRuntimeOptional':
@@ -506,7 +506,7 @@ export const en = {
   'settings.hotkeyRecord': 'Press keys…',
   'settings.hotkeyReset': 'Reset',
   'settings.hotkeyConflict': 'Already used by {action}.',
-  'hotkey.pasteUrl': 'Paste URL',
+  'hotkey.pasteUrl': 'Paste link',
   'hotkey.download': 'Start download',
   'hotkey.openDownloads': 'Open Downloads',
   'hotkey.openHistory': 'Open History',

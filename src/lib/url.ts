@@ -78,6 +78,16 @@ export function displayLink(raw: string): string {
 }
 
 /**
+ * The link in a pasted or dropped text: the first one written out in it, or
+ * the text's first word when that is a bare address ("youtu.be/abc"). The
+ * whole text is never read as one address: a URL parser drops line breaks,
+ * which joins two links on two lines into a single one that leads nowhere.
+ */
+export function linkIn(text: string): string | null {
+  return extractFirstUrl(text) ?? normalizeUrl(text.trim().split(/\s+/)[0] ?? '');
+}
+
+/**
  * Pulls the first URL out of arbitrary text. Clipboard and drag payloads often
  * carry a title or surrounding prose alongside the link.
  */

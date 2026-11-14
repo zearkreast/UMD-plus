@@ -22,6 +22,7 @@ import { formatBytes, formatTime } from '@/lib/format';
 import { groupByDay } from '@/lib/historyGroups';
 import { LIST_ITEM } from '@/lib/motion';
 import { IS_MOBILE } from '@/lib/platform';
+import { qualityText } from '@/lib/qualityLabel';
 import * as ipc from '@/services/ipc';
 import { useQueueStore } from '@/stores/useQueueStore';
 import type { AppErrorInfo, HistoryEntry } from '@/types';
@@ -351,7 +352,7 @@ const HistoryRow = memo(function HistoryRow({
           <span className={LINE}>
             {/* The day is the heading above, so the row gives the time of it. */}
             <span>{formatTime(entry.createdAt, language)}</span>
-            <span>{entry.qualityLabel}</span>
+            <span>{qualityText(entry.qualityLabel)}</span>
             <span>{entry.container.toUpperCase()}</span>
             {entry.fileSize != null && <span>{formatBytes(entry.fileSize)}</span>}
           </span>

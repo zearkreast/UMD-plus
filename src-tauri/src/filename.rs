@@ -66,13 +66,18 @@ pub fn truncate_stem(stem: &str, max_chars: usize) -> String {
         return stem.to_string();
     }
 
-    let truncated: String = stem.chars().take(max_chars).collect();
-    let cut = truncated
-        .rfind(' ')
+    // Counted in characters throughout. A space's place in bytes is two or
+    // three times its place in characters in a Cyrillic or Japanese title,
+    // and measured that way an early space passed for a late one.
+    let kept: Vec<char> = stem.chars().take(max_chars).collect();
+    let cut = kept
+        .iter()
+        .rposition(|ch| *ch == ' ')
         .filter(|index| *index > max_chars * 2 / 3)
-        .unwrap_or(truncated.len());
+        .unwrap_or(kept.len());
 
-    truncated[..cut].trim_end_matches(['.', ' ', '-']).to_string()
+    let truncated: String = kept[..cut].iter().collect();
+    truncated.trim_end_matches(['.', ' ', '-']).to_string()
 }
 
 pub struct NameContext<'a> {
@@ -89,7 +94,7 @@ pub struct NameContext<'a> {
 /// visible in the preview rather than silently swallowed.
 pub fn render_template(template: &str, ctx: &NameContext<'_>) -> String {
     let mut out = String::with_capacity(template.len() + 32);
-    let mut rest = template;
+    let mut rest = without_extension(template);
 
     while let Some(start) = rest.find('{') {
         out.push_str(&rest[..start]);
@@ -118,6 +123,17 @@ pub fn render_template(template: &str, ctx: &NameContext<'_>) -> String {
 
     out.push_str(rest);
     post_process(out, ctx)
+}
+
+/// The template without an extension written at its end. The extension is
+/// always added to the name, so "{title}.{ext}" would otherwise come out as
+/// "Video.mp4.mp4".
+fn without_extension(template: &str) -> &str {
+    let trimmed = template.trim_end();
+    match trimmed.strip_suffix("{ext}") {
+        Some(rest) => rest.strip_suffix('.').unwrap_or(rest),
+        None => template,
+    }
 }
 
 /// Clean up the seams left when an optional token expanded to nothing, e.g.
@@ -285,6 +301,24 @@ mod tests {
         assert!(!cut.ends_with(' '));
         assert!(cut.len() <= 30);
         assert!(text.starts_with(&cut));
+    }
+
+    #[test]
+    fn a_title_in_another_script_keeps_as_much_as_a_latin_one() {
+        for letter in ['a', 'ж', 'あ'] {
+            let early: String = std::iter::repeat(letter).take(30).collect();
+            let rest: String = std::iter::repeat(letter).take(119).collect();
+            let cut = truncate_stem(&format!("{early} {rest}"), 120);
+            assert_eq!(cut.chars().count(), 120, "{letter}");
+        }
+    }
+
+    #[test]
+    fn an_extension_written_in_the_template_is_not_added_twice() {
+        assert_eq!(render_template("{title}.{ext}", &ctx()), render_template("{title}", &ctx()));
+        assert_eq!(render_template("{title}{ext} ", &ctx()), render_template("{title}", &ctx()));
+        // Anywhere else it is the user's own.
+        assert!(render_template("{ext} - {title}", &ctx()).starts_with("mp4 - "));
     }
 
     #[test]

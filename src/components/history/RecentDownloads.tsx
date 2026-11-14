@@ -6,6 +6,7 @@ import { PlatformBadge } from '@/components/ui/PlatformBadge';
 import { Spinner } from '@/components/ui/Spinner';
 import { useThumbnail } from '@/hooks/useThumbnail';
 import { useTranslation, type TranslationKey } from '@/i18n';
+import { qualityText } from '@/lib/qualityLabel';
 import { cn } from '@/lib/cn';
 import { formatBytes, formatDate, formatDay } from '@/lib/format';
 import { IS_MOBILE } from '@/lib/platform';
@@ -183,7 +184,7 @@ function RecentRow({
           <span>
             {IS_MOBILE ? formatDay(entry.createdAt, language) : formatDate(entry.createdAt, language)}
           </span>
-          <span>{entry.qualityLabel}</span>
+          <span>{qualityText(entry.qualityLabel)}</span>
           <span>{entry.container.toUpperCase()}</span>
           {entry.fileSize != null && <span>{formatBytes(entry.fileSize)}</span>}
         </span>

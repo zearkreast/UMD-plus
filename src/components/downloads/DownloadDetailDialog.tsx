@@ -5,6 +5,7 @@ import { create } from 'zustand';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { useTranslation } from '@/i18n';
+import { qualityText } from '@/lib/qualityLabel';
 import type { TranslationKey } from '@/i18n';
 import { cn } from '@/lib/cn';
 import { formatBytes, formatEta, formatSpeed } from '@/lib/format';
@@ -104,7 +105,7 @@ function Details({ task, open }: { task: DownloadTask; open: boolean }) {
       title={<span className="block truncate">{task.title}</span>}
       description={
         <span className="block truncate">
-          {[displayHost(task.url) ?? task.url, task.formatLabel].filter(Boolean).join(' · ')}
+          {[displayHost(task.url) ?? task.url, qualityText(task.formatLabel)].filter(Boolean).join(' · ')}
         </span>
       }
       footer={
