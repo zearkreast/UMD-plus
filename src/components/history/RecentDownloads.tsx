@@ -46,6 +46,8 @@ interface RecentDownloadsProps {
    */
   picked?: ReadonlySet<string>;
   disabled?: boolean;
+  /** How many to show at most; the screens that work on files show more. */
+  shown?: number;
   className?: string;
 }
 
@@ -61,6 +63,7 @@ export function RecentDownloads({
   rowLabel,
   picked,
   disabled = false,
+  shown = SHOWN,
   className,
 }: RecentDownloadsProps) {
   const { t } = useTranslation();
@@ -82,14 +85,14 @@ export function RecentDownloads({
     ipc
       .listHistory(undefined, SCANNED, 0)
       .then((rows) => {
-        if (live) setEntries(recentDownloads(rows, accepts, SHOWN));
+        if (live) setEntries(recentDownloads(rows, accepts, shown));
       })
       // Nothing to offer is what an unreadable history looks like here, too.
       .catch(() => undefined);
     return () => {
       live = false;
     };
-  }, [accepts, finished, stale]);
+  }, [accepts, finished, shown, stale]);
 
   if (entries.length === 0) return null;
 

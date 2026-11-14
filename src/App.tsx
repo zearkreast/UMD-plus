@@ -26,6 +26,7 @@ import {
   type PhoneMove,
 } from '@/lib/motion';
 import { IS_MOBILE } from '@/lib/platform';
+import { quickRequest } from '@/lib/quickRequest';
 import { extractFirstUrl } from '@/lib/url';
 import { AboutPage } from '@/pages/AboutPage';
 import { ConvertPage } from '@/pages/ConvertPage';
@@ -568,7 +569,21 @@ export function App() {
         .then((text) => {
           const url = text ? extractFirstUrl(text) : null;
           if (!url) return;
-          goHomeWithUrl(url);
+          const current = useSettingsStore.getState().settings;
+          if (current?.quickDownload) {
+            void ipc
+              .enqueueDownload(
+                quickRequest(url, {
+                  mode: current.defaultMode,
+                  quality: current.defaultQuality,
+                  container: current.defaultContainer,
+                }),
+              )
+              .catch(() => goHomeWithUrl(url));
+            setRoute('downloads');
+          } else {
+            goHomeWithUrl(url);
+          }
           // A link shared in while the intro plays -- or the still welcome
           // stands in for it -- moves it aside: the user has just done what
           // the film teaches, and is waiting on the link, not on the film.
@@ -582,7 +597,7 @@ export function App() {
     take();
     window.addEventListener(ipc.SHARED_TEXT_EVENT, take);
     return () => window.removeEventListener(ipc.SHARED_TEXT_EVENT, take);
-  }, [goHomeWithUrl, settingsReady]);
+  }, [goHomeWithUrl, setRoute, settingsReady]);
 
   // A video handed over by the browser extension waits in the bridge's inbox
   // until the app takes it: once at start-up, for the press that launched the
@@ -605,6 +620,19 @@ export function App() {
       const latest = handoffs[handoffs.length - 1];
       const current = useSettingsStore.getState().settings;
       if (!latest || !current) return;
+      // Asked to skip Home: every one of them goes into the queue as the
+      // popup previewed it, rather than the last one onto a screen that
+      // holds a single link.
+      if (current.quickDownload) {
+        for (const handoff of handoffs) {
+          const { url, options, context } = homeFromHandoff(handoff, current);
+          void ipc.enqueueDownload(quickRequest(url, options, context)).catch(() => {});
+        }
+        setIntroReplay(false);
+        setIntroDone(true);
+        setRoute('downloads');
+        return;
+      }
       const { url, options, context } = homeFromHandoff(latest, current);
       // Out of the first run's way, as for a link shared in on a phone: the
       // user has just pressed İndir and is waiting on that, not on the

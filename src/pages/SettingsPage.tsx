@@ -407,6 +407,12 @@ function GeneralSection({ settings, update }: { settings: Settings; update: Upda
           checked={settings.resumeOnLaunch === true}
           onChange={(value) => void update({ resumeOnLaunch: value })}
         />
+        <ToggleRow
+          title={t('settings.quickDownload')}
+          description={t(IS_MOBILE ? 'settings.quickDownloadHintMobile' : 'settings.quickDownloadHint')}
+          checked={settings.quickDownload === true}
+          onChange={(value) => void update({ quickDownload: value })}
+        />
       </SettingGroup>
 
       <SettingGroup title={t('settings.notifications')}>

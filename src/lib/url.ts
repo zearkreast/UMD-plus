@@ -87,6 +87,13 @@ export function linkIn(text: string): string | null {
   return extractFirstUrl(text) ?? normalizeUrl(text.trim().split(/\s+/)[0] ?? '');
 }
 
+/** Every link written out in a text, each once, in the order they stand. */
+export function extractUrls(text: string): string[] {
+  const found = text.match(/\b(?:https?:\/\/|www\.)[^\s<>"'`]+/gi) ?? [];
+  const links = found.flatMap((match) => normalizeUrl(match.replace(/[),.;!]+$/, '')) ?? []);
+  return [...new Set(links)];
+}
+
 /**
  * Pulls the first URL out of arbitrary text. Clipboard and drag payloads often
  * carry a title or surrounding prose alongside the link.

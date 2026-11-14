@@ -70,6 +70,7 @@
     notifyOnError: true,
     autoUpdate: true,
     resumeOnLaunch: false,
+    quickDownload: false,
     downloadDir: 'C:\\Users\\melik\\Downloads\\Universal Downloader',
     defaultMode: 'video',
     defaultQuality: { type: 'best' },
