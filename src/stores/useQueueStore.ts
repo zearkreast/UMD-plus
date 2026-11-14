@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 
+import { keepSpeedHistories, recordSpeed } from '@/lib/speedHistory';
 import * as ipc from '@/services/ipc';
 import type { DownloadTask, QueueOutlook } from '@/types';
 
@@ -23,7 +24,10 @@ export const useQueueStore = create<QueueState>((set) => ({
     set({ tasks, outlook, loaded: true });
   },
 
-  replace: (tasks) => set({ tasks, loaded: true }),
+  replace: (tasks) => {
+    keepSpeedHistories(new Set(tasks.map((task) => task.id)));
+    set({ tasks, loaded: true });
+  },
   setOutlook: (outlook) => set({ outlook }),
 
   /**
@@ -37,6 +41,12 @@ export const useQueueStore = create<QueueState>((set) => ({
       if (index === -1) return state;
 
       const existing = state.tasks[index]!;
+      // Only while it transfers: a merge or a wait has no speed to chart, and
+      // a zero from one would read as the line having stopped.
+      if (event.status === 'downloading') {
+        const held = event.progress.waitingForNetwork != null;
+        recordSpeed(event.id, held ? 0 : event.progress.speedBps, Date.now());
+      }
       const next = state.tasks.slice();
       next[index] = {
         ...existing,
