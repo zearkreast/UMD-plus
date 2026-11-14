@@ -22,6 +22,10 @@ use crate::settings::Settings;
 use crate::{log_info, net, tools};
 
 const REPOSITORY: &str = "zearkreast/downloader-plus";
+/// Every name the repository has had. GitHub answers for an old name but
+/// writes the download addresses with the current one, so a copy that knew
+/// only the name it was built under refused every update after a rename.
+const REPOSITORY_NAMES: [&str; 2] = [REPOSITORY, "zearkreast/UMD-plus"];
 const RELEASE_TAG: &str = "latest";
 const API: &str = "https://api.github.com";
 
@@ -370,8 +374,10 @@ fn vet(update: &AppUpdate, asset: &str) -> AppResult<()> {
 
     // The whole address rather than how it starts: a longer path could climb
     // out of the repository with `..` and still begin the right way.
-    let ours = format!("https://github.com/{REPOSITORY}/releases/download/{RELEASE_TAG}/{asset}");
-    if update.asset_url != ours {
+    let ours = REPOSITORY_NAMES.iter().any(|name| {
+        update.asset_url == format!("https://github.com/{name}/releases/download/{RELEASE_TAG}/{asset}")
+    });
+    if !ours {
         return refuse("the file is not from this project's releases");
     }
 
@@ -694,12 +700,24 @@ mod tests {
     }
 
     #[test]
+    fn an_update_is_taken_under_either_name_of_the_repository() {
+        for name in REPOSITORY_NAMES {
+            let update = AppUpdate {
+                asset_url: format!("https://github.com/{name}/releases/download/latest/{NSIS_ASSET}"),
+                ..desktop_update()
+            };
+            assert!(vet(&update, NSIS_ASSET).is_ok(), "{name}");
+        }
+    }
+
+    #[test]
     fn an_update_from_anywhere_else_is_refused() {
         let file = NSIS_ASSET;
         for url in [
             format!("https://example.com/{file}"),
             format!("http://github.com/zearkreast/downloader-plus/releases/download/latest/{file}"),
             format!("https://github.com/someone/else/releases/download/latest/{file}"),
+            format!("https://github.com/someone/UMD-plus/releases/download/latest/{file}"),
             format!("https://github.com/zearkreast/downloader-plus/releases/download/../../../../someone/else/releases/download/latest/{file}"),
             format!("https://github.com/zearkreast/downloader-plus/releases/download/../{file}"),
             format!("https://github.com/zearkreast/downloader-plus/releases/download/{file}"),
