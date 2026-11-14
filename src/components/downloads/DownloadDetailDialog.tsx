@@ -10,6 +10,7 @@ import type { TranslationKey } from '@/i18n';
 import { cn } from '@/lib/cn';
 import { formatBytes, formatEta, formatSpeed } from '@/lib/format';
 import { displayHost } from '@/lib/url';
+import { SPEED_WINDOW_MS, speedChart, speedHistory } from '@/lib/speedHistory';
 import * as ipc from '@/services/ipc';
 import { useQueueStore } from '@/stores/useQueueStore';
 import type { DownloadTask, SegmentProgress } from '@/types';
@@ -156,9 +157,76 @@ function Details({ task, open }: { task: DownloadTask; open: boolean }) {
           <dd className="col-span-3 text-fg">{connectionsText}</dd>
         </dl>
 
+        <SpeedChart id={task.id} live={running} />
+
         {split && <PieceList pieces={pieces} />}
       </div>
     </Modal>
+  );
+}
+
+const CHART_WIDTH = 560;
+const CHART_HEIGHT = 96;
+
+/**
+ * The download's speed over its last minute. What the figure above cannot
+ * show: whether a slow download is slow throughout, or fast with stops in it
+ * -- and a stop of the line reads here as a gap down to nothing, shaded.
+ *
+ * Nothing is drawn until there are two readings to draw between.
+ */
+function SpeedChart({ id, live }: { id: string; live: boolean }) {
+  const { t } = useTranslation();
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!live) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [live]);
+
+  const chart = speedChart(speedHistory(id), now, CHART_WIDTH, CHART_HEIGHT);
+  if (!chart.line) return null;
+
+  return (
+    <figure>
+      <figcaption className="mb-1.5 flex items-baseline justify-between gap-3 text-[12.5px] text-fg-muted">
+        <span className="font-medium text-fg">{t('details.lastMinute')}</span>
+        <span className="tabular-nums">{formatSpeed(chart.top)}</span>
+      </figcaption>
+      <svg
+        viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
+        preserveAspectRatio="none"
+        role="img"
+        aria-label={t('details.lastMinute')}
+        className="block h-24 w-full overflow-hidden rounded-[var(--radius-control)] bg-fill"
+      >
+        {chart.stalls.map(([x, wide]) => (
+          <rect key={x} x={x} y={0} width={wide} height={CHART_HEIGHT} className="fill-warning-soft" />
+        ))}
+        <line
+          x1={0}
+          x2={CHART_WIDTH}
+          y1={CHART_HEIGHT / 2}
+          y2={CHART_HEIGHT / 2}
+          className="stroke-border-subtle"
+          strokeWidth={1}
+          vectorEffect="non-scaling-stroke"
+        />
+        <path d={chart.area} className="fill-accent-soft" />
+        <path
+          d={chart.line}
+          fill="none"
+          className="stroke-accent"
+          strokeWidth={1.75}
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+      <div className="mt-1 flex justify-between text-[11.5px] text-fg-faint">
+        <span>{t('details.secondsAgo', { n: SPEED_WINDOW_MS / 1000 })}</span>
+        <span>{t('details.now')}</span>
+      </div>
+    </figure>
   );
 }
 
