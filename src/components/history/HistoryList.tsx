@@ -3,12 +3,14 @@ import { Check, Clock, Download, FolderOpen, Search, Share, X } from 'lucide-rea
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/Button';
+import { Dropdown } from '@/components/ui/Dropdown';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { IconButton } from '@/components/ui/IconButton';
 import { InlineNotice } from '@/components/ui/InlineNotice';
 import { ListGroup, ListGroupLabel, ROW_LINE } from '@/components/ui/ListGroup';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { PlatformBadge } from '@/components/ui/PlatformBadge';
+import { Segmented } from '@/components/ui/Segmented';
 import { SourceLink } from '@/components/ui/SourceLink';
 import { TextInput } from '@/components/ui/TextInput';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
@@ -22,10 +24,11 @@ import { formatBytes, formatTime } from '@/lib/format';
 import { groupByDay } from '@/lib/historyGroups';
 import { LIST_ITEM } from '@/lib/motion';
 import { IS_MOBILE } from '@/lib/platform';
+import { platformPresentation } from '@/lib/platforms';
 import { qualityText } from '@/lib/qualityLabel';
 import * as ipc from '@/services/ipc';
 import { useQueueStore } from '@/stores/useQueueStore';
-import type { AppErrorInfo, HistoryEntry } from '@/types';
+import type { AppErrorInfo, HistoryEntry, PlatformId } from '@/types';
 import { ClearHistoryModal } from './ClearHistoryModal';
 
 const PAGE_SIZE = 60;
@@ -94,37 +97,57 @@ export function HistoryList({ onGoHome }: { onGoHome: () => void }) {
 
   const debouncedQuery = useDebouncedValue(query, 220);
 
+  // What of the history is listed: every kind from every site, newest first,
+  // until one of the three says otherwise.
+  const [kind, setKind] = useState<'all' | 'video' | 'audio' | 'image'>('all');
+  const [platform, setPlatform] = useState<PlatformId | 'all'>('all');
+  const [order, setOrder] = useState<'newest' | 'oldest'>('newest');
+  const [platforms, setPlatforms] = useState<PlatformId[]>([]);
+  const filtered = kind !== 'all' || platform !== 'all';
+  const filter = useMemo<ipc.HistoryFilter>(
+    () => ({
+      kind: kind === 'all' ? null : kind,
+      platform: platform === 'all' ? null : platform,
+      oldestFirst: order === 'oldest',
+    }),
+    [kind, platform, order],
+  );
+  /** The search and the filter together: a change to either starts a new list. */
+  const listed = `${debouncedQuery}|${kind}|${platform}|${order}`;
+
   // How many rows are showing, so reading the list again -- after a download
   // finishes -- keeps the pages already opened instead of folding back to one.
   const shownRef = useRef(0);
   shownRef.current = entries.length;
-  const queryRef = useRef(debouncedQuery);
+  const queryRef = useRef(listed);
 
   const refresh = useCallback(async () => {
     setLoading(true);
     // A new search starts from its first page; the same one keeps its length.
-    const sameQuery = queryRef.current === debouncedQuery;
-    queryRef.current = debouncedQuery;
+    const sameQuery = queryRef.current === listed;
+    queryRef.current = listed;
     const limit = sameQuery ? Math.max(PAGE_SIZE, shownRef.current) : PAGE_SIZE;
     try {
       const [rows, count] = await Promise.all([
-        ipc.listHistory(debouncedQuery || undefined, limit, 0),
+        ipc.listHistory(debouncedQuery || undefined, limit, 0, filter),
         ipc.countHistory(),
       ]);
       setEntries(rows);
       setTotal(count);
+      // Read with the list, so a site's first download turns up among them.
+      void ipc.historyPlatforms().then(setPlatforms, () => {});
       setHasMore(rows.length === limit);
     } finally {
       setLoading(false);
     }
-  }, [debouncedQuery]);
+  }, [debouncedQuery, filter, listed]);
 
   // The history used to stop at its first sixty rows, with nothing to say
   // there were more: older downloads could be found only by searching.
   const loadMore = async () => {
     setLoadingMore(true);
     try {
-      const rows = await ipc.listHistory(debouncedQuery || undefined, PAGE_SIZE, entries.length);
+      const rows = await ipc.listHistory(debouncedQuery || undefined, PAGE_SIZE, entries.length, filter);
       setEntries((current) => {
         const known = new Set(current.map((row) => row.id));
         return [...current, ...rows.filter((row) => !known.has(row.id))];
@@ -217,14 +240,72 @@ export function HistoryList({ onGoHome }: { onGoHome: () => void }) {
         />
       )}
 
+      {/* Shown once there is a history to narrow down, and kept while a
+          filter is what emptied the list -- or there would be no way back. */}
+      {(total > 0 || filtered) && (
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <Segmented
+            size="sm"
+            label={t('history.kind')}
+            value={kind}
+            onChange={setKind}
+            options={[
+              { value: 'all', label: t('history.kindAll') },
+              { value: 'video', label: t('convert.kind.video') },
+              { value: 'audio', label: t('convert.kind.audio') },
+              { value: 'image', label: t('convert.kind.image') },
+            ]}
+          />
+          <div className="ml-auto flex items-center gap-2">
+            {platforms.length > 1 && (
+              <div className="w-[150px]">
+                <Dropdown
+                  label={t('history.site')}
+                  value={platform}
+                  onChange={setPlatform}
+                  options={[
+                    { value: 'all' as const, label: t('history.siteAll') },
+                    ...platforms.map((id) => ({ value: id, label: platformPresentation(id).label })),
+                  ]}
+                />
+              </div>
+            )}
+            <div className="w-[130px]">
+              <Dropdown
+                label={t('history.order')}
+                value={order}
+                onChange={setOrder}
+                options={[
+                  { value: 'newest' as const, label: t('history.newest') },
+                  { value: 'oldest' as const, label: t('history.oldest') },
+                ]}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {isEmpty && (
         <EmptyState
-          icon={debouncedQuery ? Search : Clock}
-          title={debouncedQuery ? t('history.noResults', { query: debouncedQuery }) : t('history.emptyTitle')}
-          body={debouncedQuery ? undefined : t('history.emptyBody')}
+          icon={debouncedQuery || filtered ? Search : Clock}
+          title={
+            debouncedQuery
+              ? t('history.noResults', { query: debouncedQuery })
+              : filtered
+                ? t('history.noneOfKind')
+                : t('history.emptyTitle')
+          }
+          body={debouncedQuery || filtered ? undefined : t('history.emptyBody')}
           action={
-            debouncedQuery ? (
-              <Button variant="secondary" onClick={() => setQuery('')}>
+            debouncedQuery || filtered ? (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setQuery('');
+                  setKind('all');
+                  setPlatform('all');
+                }}
+              >
                 {t('input.clear')}
               </Button>
             ) : (
@@ -259,7 +340,7 @@ export function HistoryList({ onGoHome }: { onGoHome: () => void }) {
           <Button variant="secondary" loading={loadingMore} onClick={() => void loadMore()}>
             {t('history.showMore')}
           </Button>
-          {!debouncedQuery && total > entries.length && (
+          {!debouncedQuery && !filtered && total > entries.length && (
             <span className="tabular text-[12px] text-fg-faint">
               {t('history.showing', { shown: entries.length, total })}
             </span>

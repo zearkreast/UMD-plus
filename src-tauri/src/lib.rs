@@ -284,6 +284,7 @@ pub fn run() {
             commands::remove_conversion,
             commands::clear_finished_conversions,
             commands::list_history,
+            commands::history_platforms,
             commands::count_history,
             commands::delete_history_entry,
             commands::clear_history,

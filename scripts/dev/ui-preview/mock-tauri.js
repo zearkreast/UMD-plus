@@ -1464,8 +1464,20 @@
 
     // A new array every time: handed the same one after a removal, React keeps
     // the old rows, because nothing compares unequal.
-    list_history: ({ query }) =>
-      history.filter((entry) => !query || entry.title.toLowerCase().includes(query.toLowerCase())),
+    list_history: ({ query, filter }) => {
+      const audio = ['mp3', 'm4a', 'opus', 'flac', 'wav'];
+      const image = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+      const kindOf = (entry) =>
+        audio.includes(entry.container) ? 'audio' : image.includes(entry.container) ? 'image' : 'video';
+      const rows = history.filter(
+        (entry) =>
+          (!query || entry.title.toLowerCase().includes(query.toLowerCase())) &&
+          (!filter?.kind || kindOf(entry) === filter.kind) &&
+          (!filter?.platform || entry.platform === filter.platform),
+      );
+      return filter?.oldestFirst ? [...rows].reverse() : rows;
+    },
+    history_platforms: () => [...new Set(history.map((entry) => entry.platform))],
     count_history: ({ range }) => history.filter(inRange(range)).length,
     delete_history_entry: ({ id }) => (removeWhere((entry) => entry.id === id), null),
     clear_history: ({ range }) => {

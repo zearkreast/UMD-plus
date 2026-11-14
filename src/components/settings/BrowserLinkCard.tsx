@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import {
   Check,
+  ChevronRight,
   CircleAlert,
   CircleCheck,
   CircleDashed,
@@ -271,7 +272,7 @@ export function BrowserLinkCard({ settings, update, initialStatus = null }: Brow
       <SettingGroup>
         <ToggleRow
           title={t('settings.browserLink')}
-          description={t('settings.browserLinkHint')}
+          description={t('settings.browserLinkShort')}
           checked={settings.browserLinkEnabled}
           onChange={(value) => void update({ browserLinkEnabled: value })}
         />
@@ -298,9 +299,13 @@ export function BrowserLinkCard({ settings, update, initialStatus = null }: Brow
                     <span className={cn('min-w-0 text-fg', TITLE_SIZE)}>{title}</span>
                   </div>
 
-                  <p className={cn('mt-1 leading-relaxed text-fg-muted', BODY_SIZE)}>
-                    {t(look.body, { browser })}
-                  </p>
+                  {/* A link that is working needs no paragraph to say so; one
+                      that is not is explained where it is seen. */}
+                  {phase !== 'connected' && (
+                    <p className={cn('mt-1 leading-relaxed text-fg-muted', BODY_SIZE)}>
+                      {t(look.body, { browser })}
+                    </p>
+                  )}
 
                   {/* Two Chrome windows look identical from here, so a link
                       the user cannot place is a link they cannot trust. */}
@@ -348,21 +353,31 @@ export function BrowserLinkCard({ settings, update, initialStatus = null }: Brow
                     <>
                       <dl
                         className={cn(
-                          'mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 leading-relaxed',
+                          'mt-2.5 grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1.5',
                           BODY_SIZE,
                         )}
                       >
                         <dt className="text-fg">YouTube</dt>
-                        <dd className="text-fg-muted">{t(SITE_STATE[status.session])}</dd>
+                        <dd>
+                          <SiteState fresh={status.session === 'fresh'}>
+                            {t(SITE_STATE[status.session])}
+                          </SiteState>
+                        </dd>
                         <dt className="text-fg">TikTok</dt>
-                        <dd className="text-fg-muted">{t(SITE_STATE[status.tiktokSession])}</dd>
+                        <dd>
+                          <SiteState fresh={status.tiktokSession === 'fresh'}>
+                            {t(SITE_STATE[status.tiktokSession])}
+                          </SiteState>
+                        </dd>
                         {/* Whichever site İndir last lent a sign-in for,
                             named by its domain while it is held. */}
                         <dt className="text-fg">{t('settings.linkOtherSites')}</dt>
-                        <dd className="min-w-0 truncate text-fg-muted">
-                          {other
-                            ? t('settings.linkOtherFresh', { site: other })
-                            : t('settings.linkSiteNone')}
+                        <dd className="min-w-0">
+                          <SiteState fresh={other != null}>
+                            {other
+                              ? t('settings.linkOtherFresh', { site: other })
+                              : t('settings.linkSiteNone')}
+                          </SiteState>
                         </dd>
                       </dl>
                       {/* TikTok's switch is new and off until turned on, so
@@ -411,30 +426,94 @@ export function BrowserLinkCard({ settings, update, initialStatus = null }: Brow
                     </InlineNotice>
                   )}
 
-                  <p className={cn('mt-2 leading-relaxed text-fg-muted', BODY_SIZE)}>
-                    {t('settings.linkDiagnosticsHint')}
-                  </p>
                 </div>
               )}
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* The failure this design is most prone to, and the one a user reads as
-            "the connection is broken" unless the app names it first. */}
+        {/* Everything worth knowing about the link that is not its state:
+            said in full, to whoever asks. Above, only what is so right now. */}
         {settings.browserLinkEnabled && (
-          <SettingRow
-            title={
-              <span className="flex items-center gap-1.5">
-                <TriangleAlert size={14} aria-hidden="true" className="shrink-0 text-warning" />
-                {t('settings.linkSecondAccount')}
-              </span>
-            }
-            description={t('settings.linkSecondAccountHint')}
-          />
+          <>
+            <Disclosure title={t('settings.linkWhereKept')}>
+              <p>{t('settings.browserLinkHint')}</p>
+              <p className="mt-1.5">{t('settings.linkConnectedHint')}</p>
+            </Disclosure>
+            {/* The failure this design is most prone to, and the one a user
+                reads as "the connection is broken" unless the app names it. */}
+            <Disclosure
+              title={
+                <span className="flex items-center gap-1.5">
+                  <TriangleAlert size={14} aria-hidden="true" className="shrink-0 text-warning" />
+                  {t('settings.linkSecondAccount')}
+                </span>
+              }
+            >
+              <p>{t('settings.linkSecondAccountHint')}</p>
+            </Disclosure>
+            <Disclosure title={t('settings.linkDiagnosticsWhat')}>
+              <p>{t('settings.linkDiagnosticsHint')}</p>
+            </Disclosure>
+          </>
         )}
       </SettingGroup>
     </>
+  );
+}
+
+/** A site's sign-in, as a mark that can be told apart at a glance. */
+function SiteState({ fresh, children }: { fresh: boolean; children: React.ReactNode }) {
+  return (
+    <span
+      className={cn(
+        'inline-block max-w-full truncate rounded-full px-2 py-px align-middle text-[12px] font-medium',
+        fresh ? 'bg-success-soft text-success' : 'bg-fill text-fg-muted',
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
+/** A row that opens onto an explanation, for what is true but not news. */
+function Disclosure({ title, children }: { title: React.ReactNode; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div>
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+        className={cn(
+          'flex w-full items-center gap-2 px-4 text-left text-fg-muted hover:text-fg',
+          IS_MOBILE ? 'py-3.5' : 'py-2.5',
+          BODY_SIZE,
+        )}
+      >
+        <ChevronRight
+          size={14}
+          aria-hidden="true"
+          className={cn('shrink-0 transition-transform duration-150', open && 'rotate-90')}
+        />
+        <span className="min-w-0 font-medium">{title}</span>
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            variants={COLLAPSE}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="overflow-hidden"
+          >
+            <div className={cn('px-4 pb-3 pl-10 leading-relaxed text-fg-muted', BODY_SIZE)}>
+              {children}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 

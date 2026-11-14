@@ -747,11 +747,21 @@ pub fn list_history(
     query: Option<String>,
     limit: Option<u32>,
     offset: Option<u32>,
+    filter: Option<crate::db::HistoryFilter>,
 ) -> AppResult<Vec<HistoryEntry>> {
     let query = query.filter(|value| !value.trim().is_empty());
-    state
-        .db
-        .history_list(query.as_deref(), limit.unwrap_or(100).min(500), offset.unwrap_or(0))
+    state.db.history_page(
+        query.as_deref(),
+        &filter.unwrap_or_default(),
+        limit.unwrap_or(100).min(500),
+        offset.unwrap_or(0),
+    )
+}
+
+/// The sites the history holds something from.
+#[tauri::command]
+pub fn history_platforms(state: State<'_, AppState>) -> AppResult<Vec<crate::model::PlatformId>> {
+    state.db.history_platforms()
 }
 
 /// How many entries `range` would take; the whole history when it is left
