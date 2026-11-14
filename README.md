@@ -18,7 +18,7 @@
 
 <p align="center">
   <a href="https://github.com/zearkreast/downloader-plus/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/zearkreast/downloader-plus?style=flat-square&label=release&color=3c3c40"></a>
-  <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-3c3c40?style=flat-square"></a>
+  <a href="LICENSE"><img alt="GPL-3.0 License" src="https://img.shields.io/badge/license-GPL--3.0-3c3c40?style=flat-square"></a>
 </p>
 
 <p align="center">
@@ -203,7 +203,9 @@ tests and where the app keeps its files.
 ## Credits and licences
 
 Built on [unsalable/downloader](https://github.com/unsalable/downloader) by
-Melih. UMD+ is released under the [MIT License](LICENSE).
+Melih, which is under the MIT License; its notice is kept in
+[`LICENSE-MIT`](LICENSE-MIT). UMD+ is released under the
+[GNU General Public License, version 3](LICENSE).
 
 Third-party licences are listed in the app's About screen. Inter is used under
 the SIL Open Font License. The phone's intro film uses
