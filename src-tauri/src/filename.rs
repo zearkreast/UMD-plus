@@ -90,18 +90,46 @@ pub struct NameContext<'a> {
     pub ext: &'a str,
 }
 
+/// The file's name as `template` gives it: its last part, where the parts
+/// before a slash are folders (see [`render_folders`]).
+pub fn render_template(template: &str, ctx: &NameContext<'_>) -> String {
+    let name = template.rsplit(SEPARATORS).next().unwrap_or(template);
+    post_process(expand(without_extension(name), ctx), ctx)
+}
+
+/// A slash in the template divides folders from the file's name, either way
+/// round, since a Windows user writes the one they see in a path.
+const SEPARATORS: [char; 2] = ['/', '\\'];
+
+/// How long a folder's name may be.
+const MAX_FOLDER_CHARS: usize = 80;
+
+/// The folders `template` puts the file in, outermost first: every part
+/// before its last slash, with its tokens filled in. Each is made safe as a
+/// name on its own, so a slash in a title cannot open a folder and a part
+/// that comes to nothing -- or to dots, which would climb out -- is left out.
+pub fn render_folders(template: &str, ctx: &NameContext<'_>) -> Vec<String> {
+    let mut parts: Vec<&str> = template.split(SEPARATORS).collect();
+    parts.pop();
+    parts
+        .into_iter()
+        .map(|part| truncate_stem(&tidy(expand(part, ctx)), MAX_FOLDER_CHARS))
+        .filter(|folder| !folder.is_empty())
+        .collect()
+}
+
 /// Expand `{token}` placeholders. Unknown tokens are left as-is so a typo is
 /// visible in the preview rather than silently swallowed.
-pub fn render_template(template: &str, ctx: &NameContext<'_>) -> String {
+fn expand(template: &str, ctx: &NameContext<'_>) -> String {
     let mut out = String::with_capacity(template.len() + 32);
-    let mut rest = without_extension(template);
+    let mut rest = template;
 
     while let Some(start) = rest.find('{') {
         out.push_str(&rest[..start]);
         let after = &rest[start + 1..];
         let Some(end) = after.find('}') else {
             out.push_str(&rest[start..]);
-            return post_process(out, ctx);
+            return out;
         };
 
         let token = &after[..end];
@@ -122,7 +150,7 @@ pub fn render_template(template: &str, ctx: &NameContext<'_>) -> String {
     }
 
     out.push_str(rest);
-    post_process(out, ctx)
+    out
 }
 
 /// The template without an extension written at its end. The extension is
@@ -139,6 +167,17 @@ fn without_extension(template: &str) -> &str {
 /// Clean up the seams left when an optional token expanded to nothing, e.g.
 /// "{creator} - {title}" with no creator would otherwise start with " - ".
 fn post_process(rendered: String, ctx: &NameContext<'_>) -> String {
+    let cleaned = tidy(rendered);
+    if cleaned.is_empty() {
+        sanitize_component(ctx.title)
+    } else {
+        cleaned
+    }
+}
+
+/// A rendered part with its seams closed and nothing in it a file system
+/// would refuse.
+fn tidy(rendered: String) -> String {
     let mut value = rendered;
     for separator in [" - ", " – ", " | ", " · "] {
         while value.starts_with(separator) {
@@ -155,12 +194,7 @@ fn post_process(rendered: String, ctx: &NameContext<'_>) -> String {
     }
     value = value.replace("[]", "").replace("()", "");
 
-    let cleaned = sanitize_component(&value);
-    if cleaned.is_empty() {
-        sanitize_component(ctx.title)
-    } else {
-        cleaned
-    }
+    sanitize_component(&value)
 }
 
 /// Build the final path, expanding the template, sanitising it, keeping it
@@ -319,6 +353,24 @@ mod tests {
         assert_eq!(render_template("{title}{ext} ", &ctx()), render_template("{title}", &ctx()));
         // Anywhere else it is the user's own.
         assert!(render_template("{ext} - {title}", &ctx()).starts_with("mp4 - "));
+    }
+
+    #[test]
+    fn a_slash_in_the_template_makes_folders() {
+        let context = ctx();
+        let template = "{platform}/{creator}\\{title} [{quality}]";
+        assert_eq!(render_folders(template, &context), [context.platform, context.creator.unwrap()]);
+        assert_eq!(render_template(template, &context), render_template("{title} [{quality}]", &context));
+        assert!(render_folders("{title}", &context).is_empty());
+    }
+
+    #[test]
+    fn a_folder_cannot_climb_out_or_be_opened_by_a_title() {
+        let mut context = ctx();
+        context.title = "a/b\\c";
+        context.creator = None;
+        assert_eq!(render_folders("../..\\{creator}/ /{title}/x", &context), ["a-b-c"]);
+        assert_eq!(render_template("../{title}", &context), "a-b-c");
     }
 
     #[test]

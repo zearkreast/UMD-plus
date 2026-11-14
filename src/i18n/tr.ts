@@ -400,13 +400,15 @@ export const tr: Record<TranslationKey, string> = {
   'settings.embedMetadata': 'Bilgileri dosyaya yaz',
   'settings.embedMetadataHint':
     'Başlık, kanal, bölümler ve biçim izin veriyorsa kapak eklenir. FFmpeg gerekir.',
+  'settings.saveCover': 'Kapağı ayrı kaydet',
+  'settings.saveCoverHint': 'Videonun ya da şarkının kapak görseli, dosyanın yanına aynı adla kaydedilir.',
   'settings.connectionsCapped': 'Düşük kaynak modu açık, bu yüzden en fazla iki tane kullanılır.',
   'settings.autoRetry': 'Otomatik yeniden deneme',
   'settings.autoRetryHint':
     'Başarısız bir indirme vazgeçilmeden önce kaç kez tekrar denensin.',
   'settings.filenameTemplate': 'Dosya adı şablonu',
   'settings.filenameTemplateHint':
-    'Kullanılabilir: {title}, {creator}, {quality}, {platform}, {date}, {ext}',
+    'Kullanılabilir: {title}, {creator}, {quality}, {platform}, {date}. Eğik çizgi klasör açar: {platform}/{creator}/{title}',
   'settings.filenamePreview': 'Önizleme',
 
   'settings.browserExtension': 'Tarayıcı uzantısı',
