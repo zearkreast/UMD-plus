@@ -100,6 +100,10 @@ export const tr: Record<TranslationKey, string> = {
   'action.downloadItem': 'Öğeyi indir',
   'action.downloadItems': '{n} öğeyi indir',
 
+  'batch.queue': '{n} bağlantıyı kuyruğa ekle',
+  'batch.hint': 'Hepsi varsayılan kalite ve biçimle indirilir. Birinin seçeneklerini değiştirmek için onu tek başına yapıştır.',
+  'batch.remove': 'Listeden çıkar',
+
   'tracks.title': 'Şarkılar',
   'tracks.videos': 'Videolar',
   'tracks.downloaded': 'İndirildi',
@@ -347,6 +351,11 @@ export const tr: Record<TranslationKey, string> = {
   'settings.resumeOnLaunch': 'Açılışta kuyruğu sürdür',
   'settings.resumeOnLaunchHint':
     'Uygulama açılınca yarım kalan ve bekleyen indirmeler kendiliğinden devam eder. Kapalıyken duraklatılmış gelirler.',
+  'settings.quickDownload': 'Tek tıkla indir',
+  'settings.quickDownloadHint':
+    'Tarayıcı uzantısından gönderilen her video, ana sayfada açılmadan varsayılan kalite ve biçimle kuyruğa girer.',
+  'settings.quickDownloadHintMobile':
+    'Başka bir uygulamadan paylaşılan bağlantı, ana sayfada açılmadan varsayılan kalite ve biçimle kuyruğa girer.',
   'settings.notifications': 'Bildirimler',
   'settings.notificationsHint': 'İndirmeler bitince sistem bildirimi göster.',
   'settings.notifyComplete': 'Tamamlanınca bildir',

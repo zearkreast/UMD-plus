@@ -106,6 +106,10 @@ export const en = {
   'action.downloadItem': 'Download item',
   'action.downloadItems': 'Download {n} items',
 
+  'batch.queue': 'Queue {n} links',
+  'batch.hint': 'Each downloads with the default quality and format. To change the options of one, paste it on its own.',
+  'batch.remove': 'Take off the list',
+
   'tracks.title': 'Songs',
   'tracks.videos': 'Videos',
   'tracks.downloaded': 'Downloaded',
@@ -355,6 +359,11 @@ export const en = {
   'settings.resumeOnLaunch': 'Carry on with the queue at launch',
   'settings.resumeOnLaunchHint':
     'Downloads that were running or waiting continue by themselves when the app opens. Off, they come back paused.',
+  'settings.quickDownload': 'One-click download',
+  'settings.quickDownloadHint':
+    'Every video sent from the browser extension goes into the queue with the default quality and format, without opening on Home.',
+  'settings.quickDownloadHintMobile':
+    'A link shared from another app goes into the queue with the default quality and format, without opening on Home.',
   'settings.notifications': 'Notifications',
   'settings.notificationsHint': 'Show a system notification when downloads finish.',
   'settings.notifyComplete': 'Notify on completion',

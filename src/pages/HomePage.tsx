@@ -4,6 +4,7 @@ import { CircleCheck, Clock, Link2, ListVideo, RotateCcw, type LucideIcon } from
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { AnalyzingCard } from '@/components/home/AnalyzingCard';
+import { BatchLinks } from '@/components/home/BatchLinks';
 import { ClipboardSuggestion } from '@/components/home/ClipboardSuggestion';
 import { DownloadOptionsPanel } from '@/components/home/DownloadOptionsPanel';
 import { ErrorCard } from '@/components/home/ErrorCard';
@@ -14,6 +15,7 @@ import { PlatformIndicator } from '@/components/home/PlatformIndicator';
 import { TrackList } from '@/components/home/TrackList';
 import { UrlInput, type UrlInputHandle } from '@/components/home/UrlInput';
 import { useToolInstall } from '@/components/home/useToolInstall';
+import { RecentDownloads } from '@/components/history/RecentDownloads';
 import { InstallProgress } from '@/components/settings/ToolCard';
 import { Button } from '@/components/ui/Button';
 import { InlineNotice } from '@/components/ui/InlineNotice';
@@ -29,7 +31,7 @@ import {
 import { formatDay } from '@/lib/format';
 import { COLLAPSE, FADE, RISE, T, rise } from '@/lib/motion';
 import { IS_MOBILE } from '@/lib/platform';
-import { linkIn, normalizeUrl } from '@/lib/url';
+import { extractUrls, linkIn, normalizeUrl } from '@/lib/url';
 import type { SettingsSection } from '@/pages/SettingsPage';
 import * as ipc from '@/services/ipc';
 import { useAnalysisStore } from '@/stores/useAnalysisStore';
@@ -59,6 +61,15 @@ export interface HomeRequest {
  * already done before it left.
  */
 let lastRequest = 0;
+
+/** Every finished download is something Home can open. */
+const anyDownload = () => true;
+
+const openRecent = (path: string) =>
+  ipc.openFile(path).then(
+    () => true,
+    () => null,
+  );
 
 interface HomePageProps {
   settings: Settings;
@@ -232,20 +243,52 @@ export function HomePage({
 
   const clearAll = () => reset();
 
+  // Several links pasted or dropped together, waiting to be queued as they
+  // are; see `BatchLinks`.
+  const [batch, setBatch] = useState<string[] | null>(null);
+
+  /** Take what a paste or a drop brought. Says whether there was a link in it. */
+  const take = useCallback(
+    (text: string) => {
+      const links = extractUrls(text);
+      if (links.length > 1) {
+        reset();
+        setBatch(links);
+        return true;
+      }
+      const link = linkIn(text);
+      if (!link) return false;
+      setBatch(null);
+      setUrl(link);
+      startAnalysis(link);
+      return true;
+    },
+    [reset, setUrl, startAnalysis],
+  );
+
+  // A paste into the field itself: one line of several links would arrive
+  // there run together, so that paste is taken here instead.
+  useEffect(() => {
+    const onPaste = (event: ClipboardEvent) => {
+      const text = event.clipboardData?.getData('text/plain') ?? '';
+      if (extractUrls(text).length < 2) return;
+      event.preventDefault();
+      take(text);
+    };
+    window.addEventListener('paste', onPaste);
+    return () => window.removeEventListener('paste', onPaste);
+  }, [take]);
+
   /** Resolves to whether the clipboard held a link to take. */
   const pasteFromClipboard = useCallback(async () => {
     try {
       const text = await readText();
-      const normalized = text ? linkIn(text) : null;
-      if (!normalized) return false;
-      setUrl(normalized);
-      startAnalysis(normalized);
-      return true;
+      return text ? take(text) : false;
     } catch {
       // Clipboard can be unavailable; the field is still usable by typing.
       return false;
     }
-  }, [setUrl, startAnalysis]);
+  }, [take]);
 
   // Drag and drop of a link or a text fragment containing one.
   const dropDepth = useRef(0);
@@ -271,11 +314,7 @@ export function HomePage({
 
       const text =
         event.dataTransfer?.getData('text/uri-list') || event.dataTransfer?.getData('text/plain');
-      const normalized = text ? linkIn(text) : null;
-      if (!normalized) return;
-
-      setUrl(normalized);
-      startAnalysis(normalized);
+      if (text) take(text);
     };
 
     window.addEventListener('dragenter', onDragEnter);
@@ -288,7 +327,7 @@ export function HomePage({
       window.removeEventListener('dragover', onDragOver);
       window.removeEventListener('drop', onDrop);
     };
-  }, [setUrl, startAnalysis]);
+  }, [take]);
 
   const buildRequest = (): DownloadRequest | null => {
     if (!metadata) return null;
@@ -445,7 +484,10 @@ export function HomePage({
         <UrlInput
           ref={inputRef}
           value={url}
-          onChange={setUrl}
+          onChange={(value) => {
+            setBatch(null);
+            setUrl(value);
+          }}
           onSubmit={startAnalysis}
           onClear={clearAll}
           onPaste={() => void pasteFromClipboard()}
@@ -480,7 +522,33 @@ export function HomePage({
         </AnimatePresence>
       </div>
 
-      {IS_MOBILE && phase === 'idle' && engineReady && !url.trim() && (
+      {batch && phase === 'idle' && (
+        <motion.div variants={RISE} initial="initial" animate="animate" className="mt-4">
+          <BatchLinks
+            links={batch}
+            settings={settings}
+            onChange={setBatch}
+            onQueued={() => {
+              setBatch(null);
+              onGoToDownloads();
+            }}
+          />
+        </motion.div>
+      )}
+
+      {/* With nothing in the field, what was downloaded last is the likeliest
+          thing to be wanted next. */}
+      {!IS_MOBILE && !batch && phase === 'idle' && !url.trim() && !engineMissing && (
+        <RecentDownloads
+          accepts={anyDownload}
+          onPress={openRecent}
+          rowLabel="downloads.openFileNamed"
+          shown={3}
+          className="mt-8"
+        />
+      )}
+
+      {IS_MOBILE && !batch && phase === 'idle' && engineReady && !url.trim() && (
         <p className="mt-4 text-center text-[12.5px] leading-relaxed text-fg-faint">
           {t('input.shareHint')}
         </p>

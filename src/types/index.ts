@@ -678,6 +678,11 @@ export interface Settings {
   autoUpdate: boolean;
   /** Carry on with the queue when the app opens, rather than bring it back paused. */
   resumeOnLaunch: boolean;
+  /**
+   * A link the browser extension or another app sends goes straight into the
+   * queue with the default options, without opening on Home first.
+   */
+  quickDownload: boolean;
 
   // Downloads
   downloadDir: string;

@@ -122,4 +122,4 @@ Firefox için `extension-firefox.zip`, `about:debugging` sayfasından geçici ek
 **Browser extension (Windows only for now):** unzip `extension-full.zip`, turn on Developer mode on the extensions page and use **Load unpacked**.
 </details>
 
-<sub>Her dosyanın SHA-256 özeti `SHA256SUMS.txt` içinde. · Built from <a href="https://github.com/{{repo}}/commit/{{sha}}"><code>{{short}}</code></a> · Based on <a href="https://github.com/unsalable/downloader">unsalable/downloader</a> by Melih, MIT License.</sub>
+<sub>Her dosyanın SHA-256 özeti `SHA256SUMS.txt` içinde. · Built from <a href="https://github.com/{{repo}}/commit/{{sha}}"><code>{{short}}</code></a> · Based on <a href="https://github.com/unsalable/downloader">unsalable/downloader</a> by Melih (MIT) · GPL-3.0</sub>

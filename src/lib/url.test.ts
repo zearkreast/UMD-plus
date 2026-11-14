@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { displayLink, linkIn, normalizeUrl } from './url';
+import { displayLink, extractUrls, linkIn, normalizeUrl } from './url';
 
 describe('displayLink', () => {
   it('drops the scheme, the www and a trailing slash', () => {
@@ -44,5 +44,17 @@ describe('the link in a pasted text', () => {
     expect(linkIn('  youtu.be/aaa  ')).toBe('https://youtu.be/aaa');
     expect(linkIn('not a link at all')).toBeNull();
     expect(linkIn('')).toBeNull();
+  });
+});
+
+describe('every link in a text', () => {
+  it('is found once each, in the order they stand', () => {
+    const text = 'https://youtu.be/aaa\nsonra www.tiktok.com/@x/video/1, bir de https://youtu.be/aaa.';
+    expect(extractUrls(text)).toEqual(['https://youtu.be/aaa', 'https://www.tiktok.com/@x/video/1']);
+  });
+
+  it('is none where there is none', () => {
+    expect(extractUrls('yalnızca yazı')).toEqual([]);
+    expect(extractUrls('')).toEqual([]);
   });
 });

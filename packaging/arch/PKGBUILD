@@ -22,12 +22,12 @@
 # and the app finds them on PATH.
 
 pkgname=umd-plus
-pkgver=2.8.0
+pkgver=2.9.0
 pkgrel=1
 pkgdesc='Universal Media Downloader+: fast, private and ad-free media downloading'
 arch=('x86_64')
 url='https://github.com/zearkreast/downloader-plus'
-license=('MIT')
+license=('GPL-3.0-only')
 depends=(
   'webkit2gtk-4.1'
   'gtk3'
@@ -64,6 +64,8 @@ package() {
   rm -rf "$pkgdir/usr/share/doc"
   local licence="$startdir/../../LICENSE"
   [[ -f $licence ]] && install -Dm644 "$licence" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  # The notice of the MIT-licensed project this one is built on.
+  [[ -f $licence-MIT ]] && install -Dm644 "$licence-MIT" "$pkgdir/usr/share/licenses/$pkgname/LICENSE-MIT"
 
   # Directories as root:root 755, whatever the archive said.
   find "$pkgdir" -type d -exec chmod 755 {} +

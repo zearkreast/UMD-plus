@@ -71,6 +71,11 @@ pub struct Settings {
     /// at launch that the user did not start.
     #[serde(default)]
     pub resume_on_launch: bool,
+    /// A link the browser extension or another app sends goes straight into
+    /// the queue with the default options. Only the interface reads it: that
+    /// is where a link arrives and where Home would otherwise open it.
+    #[serde(default)]
+    pub quick_download: bool,
 
     // Downloads
     pub download_dir: String,
@@ -157,6 +162,7 @@ impl Default for Settings {
             notify_on_error: true,
             auto_update: default_true(),
             resume_on_launch: false,
+            quick_download: false,
 
             download_dir: paths::default_download_dir().to_string_lossy().into_owned(),
             default_mode: DownloadMode::Video,
@@ -326,7 +332,7 @@ mod tests {
     fn settings_saved_before_the_schedule_still_load() {
         let mut written = serde_json::to_value(Settings::default()).unwrap();
         let object = written.as_object_mut().unwrap();
-        for key in ["scheduleEnabled", "scheduleStart", "scheduleEnd", "speedLimitKb", "embedMetadata", "autoUpdate", "resumeOnLaunch"] {
+        for key in ["scheduleEnabled", "scheduleStart", "scheduleEnd", "speedLimitKb", "embedMetadata", "autoUpdate", "resumeOnLaunch", "quickDownload"] {
             assert!(object.remove(key).is_some(), "{key}");
         }
         let read: Settings = serde_json::from_value(written).unwrap();
