@@ -331,7 +331,7 @@ function useActivityWords(activity: Activity) {
   const heldUntil = useQueueStore((state) => state.outlook.heldUntil);
   const idle =
     activity.running > 0
-      ? t('activity.starting')
+      ? t(activity.offline ? 'downloads.waitingForNetwork' : 'activity.starting')
       : heldUntil != null
         ? t('activity.heldUntil', { time: heldUntil })
         : t('activity.queuedOnly');

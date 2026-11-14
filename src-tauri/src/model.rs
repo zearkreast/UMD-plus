@@ -527,6 +527,10 @@ pub struct DownloadProgress {
     /// at once. `None` for anything else, whose connections `segments` shows.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub fragments_at_once: Option<u32>,
+    /// The line is down and the download is waiting for it: when it tries
+    /// again, in milliseconds since the epoch. `None` while it runs.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub waiting_for_network: Option<i64>,
 }
 
 /// One piece of a split transfer: `[start, end)` of the stream, of which the
@@ -555,6 +559,7 @@ impl Default for DownloadProgress {
             resumable: false,
             segments: Vec::new(),
             fragments_at_once: None,
+            waiting_for_network: None,
         }
     }
 }

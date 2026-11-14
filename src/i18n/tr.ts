@@ -172,6 +172,9 @@ export const tr: Record<TranslationKey, string> = {
   'downloads.clearFinished': 'Tamamlananları temizle',
   'downloads.eta': 'Kalan {time}',
   'downloads.paused': 'Duraklatıldı',
+  'downloads.waitingForNetwork': 'İnternet bekleniyor',
+  'downloads.retryIn': '{n} sn sonra yeniden denenecek',
+  'downloads.tryNow': 'Şimdi dene',
   'downloads.canceled': 'İptal edildi',
   'downloads.failed': 'Başarısız',
   'downloads.copyLink': 'Bağlantıyı kopyala',
@@ -337,6 +340,9 @@ export const tr: Record<TranslationKey, string> = {
     'Yeni sürüm arka planda iner ve süren bir iş yokken kurulur, uygulama yeniden açılır. Kapalıyken Hakkında sayfasından güncellersin.',
   'settings.autoUpdateHintMobile':
     'Uygulama açılınca yeni sürüm varsa sorulur. Kapalıyken Hakkında sayfasından denetlersin.',
+  'settings.resumeOnLaunch': 'Açılışta kuyruğu sürdür',
+  'settings.resumeOnLaunchHint':
+    'Uygulama açılınca yarım kalan ve bekleyen indirmeler kendiliğinden devam eder. Kapalıyken duraklatılmış gelirler.',
   'settings.notifications': 'Bildirimler',
   'settings.notificationsHint': 'İndirmeler bitince sistem bildirimi göster.',
   'settings.notifyComplete': 'Tamamlanınca bildir',

@@ -187,6 +187,25 @@ pub async fn explain_failure(app: &tauri::AppHandle, err: AppError) -> AppError 
     }
 }
 
+/// How long the line gets to answer before it counts as down.
+const LINE_PROBE: Duration = Duration::from_secs(4);
+
+/// Whether the internet can be reached at all, as opposed to one host of it.
+///
+/// A connection opened to GitHub and closed again, with nothing sent: the one
+/// place besides the media's own source that the app already talks to. Behind
+/// a proxy a direct connection says nothing about the line, so there the
+/// answer is always yes and a failure is treated as the host's.
+pub async fn line_is_up(settings: &Settings) -> bool {
+    if settings.proxy_url.is_some() {
+        return true;
+    }
+    matches!(
+        tokio::time::timeout(LINE_PROBE, tokio::net::TcpStream::connect(("github.com", 443))).await,
+        Ok(Ok(_))
+    )
+}
+
 /// On the desktop, a failed lookup is reported as it is.
 #[cfg(not(target_os = "android"))]
 pub async fn explain_failure(_app: &tauri::AppHandle, err: AppError) -> AppError {

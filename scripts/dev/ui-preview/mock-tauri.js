@@ -68,6 +68,8 @@
     notificationsEnabled: true,
     notifyOnComplete: true,
     notifyOnError: true,
+    autoUpdate: true,
+    resumeOnLaunch: false,
     downloadDir: 'C:\\Users\\melik\\Downloads\\Universal Downloader',
     defaultMode: 'video',
     defaultQuality: { type: 'best' },
@@ -1193,6 +1195,7 @@
     },
     pause_download: ({ id }) => patch(id, { status: 'paused' }),
     resume_download: ({ id }) => patch(id, { status: 'downloading' }),
+    retry_waiting_downloads: () => undefined,
     cancel_download: ({ id }) => patch(id, { status: 'canceled' }),
     retry_download: ({ id }) => patch(id, { status: 'queued', error: null }),
     remove_download: ({ id }) => {

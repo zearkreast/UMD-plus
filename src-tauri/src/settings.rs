@@ -66,6 +66,11 @@ pub struct Settings {
     /// About page. `serde(default)` for the reason `browser_link_enabled` gives.
     #[serde(default = "default_true")]
     pub auto_update: bool,
+    /// Carry on with the queue when the app opens, rather than bringing it
+    /// back paused. Off unless asked for: the app otherwise uses no network
+    /// at launch that the user did not start.
+    #[serde(default)]
+    pub resume_on_launch: bool,
 
     // Downloads
     pub download_dir: String,
@@ -151,6 +156,7 @@ impl Default for Settings {
             notify_on_complete: true,
             notify_on_error: true,
             auto_update: default_true(),
+            resume_on_launch: false,
 
             download_dir: paths::default_download_dir().to_string_lossy().into_owned(),
             default_mode: DownloadMode::Video,
@@ -320,11 +326,12 @@ mod tests {
     fn settings_saved_before_the_schedule_still_load() {
         let mut written = serde_json::to_value(Settings::default()).unwrap();
         let object = written.as_object_mut().unwrap();
-        for key in ["scheduleEnabled", "scheduleStart", "scheduleEnd", "speedLimitKb", "embedMetadata", "autoUpdate"] {
+        for key in ["scheduleEnabled", "scheduleStart", "scheduleEnd", "speedLimitKb", "embedMetadata", "autoUpdate", "resumeOnLaunch"] {
             assert!(object.remove(key).is_some(), "{key}");
         }
         let read: Settings = serde_json::from_value(written).unwrap();
         assert!(read.auto_update, "an install from before the switch keeps updating itself");
+        assert!(!read.resume_on_launch);
         assert!(!read.schedule_enabled);
         assert_eq!(read.schedule_start, "02:00");
         assert!(read.embed_metadata);

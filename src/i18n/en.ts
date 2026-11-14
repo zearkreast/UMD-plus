@@ -181,6 +181,9 @@ export const en = {
   'downloads.clearFinished': 'Clear finished',
   'downloads.eta': '{time} left',
   'downloads.paused': 'Paused',
+  'downloads.waitingForNetwork': 'Waiting for the internet',
+  'downloads.retryIn': 'Trying again in {n} s',
+  'downloads.tryNow': 'Try now',
   'downloads.canceled': 'Canceled',
   'downloads.failed': 'Failed',
   'downloads.copyLink': 'Copy link',
@@ -345,6 +348,9 @@ export const en = {
     'A new version downloads in the background and installs when nothing is running, then the app reopens. When off, update from the About page.',
   'settings.autoUpdateHintMobile':
     'When the app opens, it asks if a new version is out. When off, check from the About page.',
+  'settings.resumeOnLaunch': 'Carry on with the queue at launch',
+  'settings.resumeOnLaunchHint':
+    'Downloads that were running or waiting continue by themselves when the app opens. Off, they come back paused.',
   'settings.notifications': 'Notifications',
   'settings.notificationsHint': 'Show a system notification when downloads finish.',
   'settings.notifyComplete': 'Notify on completion',

@@ -48,6 +48,7 @@ describe('summarizeActivity', () => {
       speedBps: 0,
       percent: null,
       etaSec: null,
+      offline: false,
     });
     expect(isBusy(activity)).toBe(false);
   });
@@ -102,5 +103,12 @@ describe('summarizeActivity', () => {
     expect(activity.speedBps).toBe(0);
     expect(activity.etaSec).toBeNull();
     expect(activity.percent).toBeNull();
+  });
+
+  it('says the line is down only when it holds everything that runs', () => {
+    const held = { waitingForNetwork: 1_700_000_000_000 };
+    expect(summarizeActivity([task('downloading', held), task('queued')]).offline).toBe(true);
+    expect(summarizeActivity([task('downloading', held), task('downloading')]).offline).toBe(false);
+    expect(summarizeActivity([task('queued')]).offline).toBe(false);
   });
 });

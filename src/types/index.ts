@@ -301,6 +301,11 @@ export interface DownloadProgress {
   segments?: SegmentProgress[];
   /** How many pieces of a fragmented stream (HLS, DASH) the engine fetches at once. */
   fragmentsAtOnce?: number | null;
+  /**
+   * Set while the line is down and the download waits for it: when it tries
+   * again, in milliseconds since the epoch.
+   */
+  waitingForNetwork?: number | null;
 }
 
 /** One piece of a split transfer: `[start, end)`, the first `received` bytes on disk. */
@@ -671,6 +676,8 @@ export interface Settings {
    * the phone offers it. Off, only the About page's check does anything.
    */
   autoUpdate: boolean;
+  /** Carry on with the queue when the app opens, rather than bring it back paused. */
+  resumeOnLaunch: boolean;
 
   // Downloads
   downloadDir: string;

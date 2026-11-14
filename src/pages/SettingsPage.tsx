@@ -401,6 +401,12 @@ function GeneralSection({ settings, update }: { settings: Settings; update: Upda
           checked={settings.autoUpdate}
           onChange={(value) => void update({ autoUpdate: value })}
         />
+        <ToggleRow
+          title={t('settings.resumeOnLaunch')}
+          description={t('settings.resumeOnLaunchHint')}
+          checked={settings.resumeOnLaunch === true}
+          onChange={(value) => void update({ resumeOnLaunch: value })}
+        />
       </SettingGroup>
 
       <SettingGroup title={t('settings.notifications')}>
