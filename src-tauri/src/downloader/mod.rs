@@ -131,6 +131,7 @@ impl Aggregator {
             segments: sample.segments.clone(),
             fragments_at_once: None,
             waiting_for_network: None,
+            waiting_for_wifi: false,
         }
     }
 
@@ -155,6 +156,7 @@ impl Aggregator {
             segments: Vec::new(),
             fragments_at_once: None,
             waiting_for_network: None,
+            waiting_for_wifi: false,
         }
     }
 }

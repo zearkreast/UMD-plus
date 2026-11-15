@@ -337,6 +337,8 @@ class BridgePlugin(private val activity: Activity) : Plugin(activity) {
         result.put("vpn", vpn)
         result.put("validated", capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true)
         result.put("dataSaver", manager.restrictBackgroundStatus == ConnectivityManager.RESTRICT_BACKGROUND_STATUS_ENABLED)
+        // Wi-Fi as a rule, and a mobile plan the carrier does not count.
+        result.put("unmetered", capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED) == true)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             val link = network?.let { manager.getLinkProperties(it) }
             val privateDns = link?.privateDnsServerName ?: if (link?.isPrivateDnsActive == true) "automatic" else null

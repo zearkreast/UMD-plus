@@ -184,6 +184,7 @@ export const tr: Record<TranslationKey, string> = {
   'downloads.eta': 'Kalan {time}',
   'downloads.paused': 'Duraklatıldı',
   'downloads.waitingForNetwork': 'İnternet bekleniyor',
+  'downloads.waitingForWifi': 'Wi-Fi bekleniyor',
   'downloads.retryIn': '{n} sn sonra yeniden denenecek',
   'downloads.tryNow': 'Şimdi dene',
   'downloads.canceled': 'İptal edildi',
@@ -403,6 +404,8 @@ export const tr: Record<TranslationKey, string> = {
   'settings.embedMetadata': 'Bilgileri dosyaya yaz',
   'settings.embedMetadataHint':
     'Başlık, kanal, bölümler ve biçim izin veriyorsa kapak eklenir. FFmpeg gerekir.',
+  'settings.wifiOnly': 'Yalnızca Wi-Fi ile indir',
+  'settings.wifiOnlyHint': 'Mobil verideyken indirmeler başlamaz, Wi-Fi gelince kendiliğinden başlar. Süren bir indirme Wi-Fi kesilse de devam eder.',
   'settings.saveCover': 'Kapağı ayrı kaydet',
   'settings.saveCoverHint': 'Videonun ya da şarkının kapak görseli, dosyanın yanına aynı adla kaydedilir.',
   'settings.connectionsCapped': 'Düşük kaynak modu açık, bu yüzden en fazla iki tane kullanılır.',

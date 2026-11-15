@@ -79,6 +79,10 @@ pub struct Settings {
     /// Keep a download's cover as a picture beside it, named after it.
     #[serde(default)]
     pub save_cover: bool,
+    /// On a phone, start downloads only on a connection that does not count
+    /// its data. Means nothing on a desktop, which is not asked.
+    #[serde(default)]
+    pub wifi_only: bool,
 
     // Downloads
     pub download_dir: String,
@@ -167,6 +171,7 @@ impl Default for Settings {
             resume_on_launch: false,
             quick_download: false,
             save_cover: false,
+            wifi_only: false,
 
             download_dir: paths::default_download_dir().to_string_lossy().into_owned(),
             default_mode: DownloadMode::Video,
@@ -336,7 +341,7 @@ mod tests {
     fn settings_saved_before_the_schedule_still_load() {
         let mut written = serde_json::to_value(Settings::default()).unwrap();
         let object = written.as_object_mut().unwrap();
-        for key in ["scheduleEnabled", "scheduleStart", "scheduleEnd", "speedLimitKb", "embedMetadata", "autoUpdate", "resumeOnLaunch", "quickDownload", "saveCover"] {
+        for key in ["scheduleEnabled", "scheduleStart", "scheduleEnd", "speedLimitKb", "embedMetadata", "autoUpdate", "resumeOnLaunch", "quickDownload", "saveCover", "wifiOnly"] {
             assert!(object.remove(key).is_some(), "{key}");
         }
         let read: Settings = serde_json::from_value(written).unwrap();

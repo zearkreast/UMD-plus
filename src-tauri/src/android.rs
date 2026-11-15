@@ -531,6 +531,9 @@ pub struct NetworkStatus {
     pub private_dns: Option<String>,
     #[serde(default)]
     pub data_saver: bool,
+    /// Data on this network is not counted against a plan: Wi-Fi as a rule.
+    #[serde(default)]
+    pub unmetered: bool,
 }
 
 impl NetworkStatus {
@@ -554,6 +557,17 @@ impl NetworkStatus {
             facts.push("Data Saver".into());
         }
         facts.join(", ")
+    }
+}
+
+/// Whether the phone is on a connection that counts its data. A phone with
+/// no network at all is not: that is for the download to find out and wait
+/// on, as it does anywhere. Nor is one whose state cannot be read, where
+/// holding every download back on a guess would be the worse mistake.
+pub async fn on_metered(app: &AppHandle) -> bool {
+    match network_status(app.clone()).await {
+        Ok(status) => status.connected && !status.blocked && !status.unmetered,
+        Err(_) => false,
     }
 }
 

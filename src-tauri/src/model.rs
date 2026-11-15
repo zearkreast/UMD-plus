@@ -531,6 +531,10 @@ pub struct DownloadProgress {
     /// again, in milliseconds since the epoch. `None` while it runs.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub waiting_for_network: Option<i64>,
+    /// The wait above is for Wi-Fi rather than for any line at all: the phone
+    /// is on mobile data and was asked not to download over it.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub waiting_for_wifi: bool,
 }
 
 /// One piece of a split transfer: `[start, end)` of the stream, of which the
@@ -560,6 +564,7 @@ impl Default for DownloadProgress {
             segments: Vec::new(),
             fragments_at_once: None,
             waiting_for_network: None,
+            waiting_for_wifi: false,
         }
     }
 }
