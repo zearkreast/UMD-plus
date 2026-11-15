@@ -500,6 +500,9 @@ export const tr: Record<TranslationKey, string> = {
   'settings.linkStorePending':
     'Uzantı henüz yayımlanmadı. O zamana kadar tarayıcına uygulamanın extension klasöründen yükleyebilirsin.',
   'settings.linkDisconnect': 'Bağlantıyı kes',
+  'settings.linkForget': 'Kaldır',
+  'settings.linkForgetSite': '{site} oturumunu kaldır',
+  'settings.linkForgetFailed': 'Oturum kaldırılamadı',
   'settings.linkDisconnectFailed': 'Tarayıcı bağlantısı kesilemedi',
   'settings.linkCopyDiagnostics': 'Tanılamayı kopyala',
   'settings.linkDiagnosticsCopied': 'Tanılama kopyalandı',

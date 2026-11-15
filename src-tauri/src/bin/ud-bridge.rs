@@ -474,6 +474,9 @@ fn status(state: &LinkState, peer: &Peer) -> HostStatus {
         can_download: true,
         sites: Site::ALL.to_vec(),
         tiktok_session: state.session_state(Site::Tiktok),
+        reddit_session: state.session_state(Site::Reddit),
+        x_session: state.session_state(Site::X),
+        forgotten: state.forgotten.clone(),
         // Which site the bound profile last lent a sign-in for is about that
         // person's browsing, as the account hint is about their account, so
         // another profile is told only that one is held, not whose.

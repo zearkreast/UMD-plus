@@ -124,7 +124,16 @@ impl Site {
         ) {
             return Some(Site::Youtube);
         }
-        (host == "tiktok.com" || host.ends_with(".tiktok.com")).then_some(Site::Tiktok)
+        let under = |domain: &str| host == domain || host.ends_with(&format!(".{domain}"));
+        if under("tiktok.com") {
+            Some(Site::Tiktok)
+        } else if under("reddit.com") || under("redd.it") {
+            Some(Site::Reddit)
+        } else if under("x.com") || under("twitter.com") {
+            Some(Site::X)
+        } else {
+            None
+        }
     }
 }
 
@@ -248,6 +257,24 @@ pub fn other_lease(settings: &Settings, url: &str, page_url: Option<&str>) -> Op
     }
 }
 
+/// The session a run reading `url` takes from its first attempt, if any: the
+/// site's own, for a site whose session is lent first (`Site::lent_first`),
+/// or else the other-site session as `other_lease` decides.
+pub fn first_lease(settings: &Settings, url: &str, page_url: Option<&str>) -> Option<CookieLease> {
+    match Site::for_url(url) {
+        Some(site) if site.lent_first() => lease(settings, site),
+        _ => other_lease(settings, url, page_url),
+    }
+}
+
+/// Remove `site`'s session at the user's word, from the Connection page. The
+/// binding stays. The popup turns that site's switch off when it next hears
+/// from the app, and nothing of the site's is stored meanwhile.
+pub fn forget_session(site: Site) -> AppResult<()> {
+    store::forget(site)?;
+    state::mark_forgotten(site)
+}
+
 /// Remove lease files a crash left behind, and an other-site session whose
 /// hour ran out while the app was closed. Run once at startup; a lease that
 /// outlives its process is never resumable state, unlike a partial download.
@@ -285,6 +312,8 @@ pub fn status(settings: &Settings, app_version: &str) -> BridgeStatus {
         session: link.session_state(Site::Youtube),
         tiktok_session: link.session_state(Site::Tiktok),
         tiktok_last_push_at: link.tiktok.last_push_at,
+        reddit_session: link.session_state(Site::Reddit),
+        x_session: link.session_state(Site::X),
         // The site is named only while its session is there to be lent.
         other_domain: (other_session == SessionState::Fresh)
             .then(|| link.other.domain.clone())
@@ -446,6 +475,11 @@ pub fn diagnostics(settings: &Settings, app_version: &str) -> String {
     // TikTok's jar is described the same way and under its own name, so a
     // paste never leaves the reader guessing which site a count belongs to.
     out.push_str(&format!("tiktok session: {:?}\n", status.tiktok_session));
+    out.push_str(&format!("reddit session: {:?}\n", status.reddit_session));
+    out.push_str(&format!("x session: {:?}\n", status.x_session));
+    if !link.forgotten.is_empty() {
+        out.push_str(&format!("removed in the app: {:?}\n", link.forgotten));
+    }
     out.push_str(&format!(
         "tiktok last push: {}\n",
         status
@@ -510,6 +544,13 @@ pub const SENSITIVE_COOKIE_NAMES: &[&str] = &[
     "PREF",
     "sessionid",
     "sessionid_ss",
+    // Reddit's and X's sign-ins.
+    "reddit_session",
+    "token_v2",
+    "auth_token",
+    "ct0",
+    "kdt",
+    "twid",
     "sid_tt",
     "sid_guard",
     "uid_tt",
@@ -572,9 +613,9 @@ mod tests {
     fn the_other_session_is_lent_by_the_page_a_link_came_from() {
         assert!(lends_other(
             true,
-            jar("reddit.com"),
-            "https://v.redd.it/abc123/HLSPlaylist.m3u8",
-            Some("https://www.reddit.com/r/videos/comments/1/a/"),
+            jar("instagram.com"),
+            "https://scontent.cdninstagram.com/v/a.mp4",
+            Some("https://www.instagram.com/reel/x/"),
             NOW,
         ));
         assert!(lends_other(

@@ -506,6 +506,9 @@ export const en = {
   'settings.linkStorePending':
     'The extension is not published yet. Until it is, load it in your browser from the app’s extension folder.',
   'settings.linkDisconnect': 'Disconnect',
+  'settings.linkForget': 'Remove',
+  'settings.linkForgetSite': 'Remove the {site} session',
+  'settings.linkForgetFailed': 'The session could not be removed',
   'settings.linkDisconnectFailed': 'Could not disconnect the browser',
   'settings.linkCopyDiagnostics': 'Copy diagnostics',
   'settings.linkDiagnosticsCopied': 'Diagnostics copied',

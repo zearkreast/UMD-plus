@@ -55,6 +55,17 @@ pub struct LinkState {
     #[serde(default)]
     pub tiktok: SiteRecord,
 
+    #[serde(default)]
+    pub reddit: SiteRecord,
+
+    #[serde(default)]
+    pub x: SiteRecord,
+
+    /// The sites whose session the user removed in the app, which are not
+    /// stored again until their switch is turned on in the popup.
+    #[serde(default)]
+    pub forgotten: Vec<Site>,
+
     /// The other-site session's, with the site it is for in `domain`. Absent
     /// from every file written before there was one, and dropped by any build
     /// from before it that rewrites the file -- which leaves a jar with no
@@ -116,6 +127,9 @@ impl Default for LinkState {
             cookie_count: 0,
             cookie_names: Vec::new(),
             tiktok: SiteRecord::default(),
+            reddit: SiteRecord::default(),
+            x: SiteRecord::default(),
+            forgotten: Vec::new(),
             other: SiteRecord::default(),
             last_error: None,
         }
@@ -204,8 +218,8 @@ fn apply_push(state: &mut LinkState, push: &Push, site: Site, kept: &[Cookie]) {
         }
         // The account hint stays YouTube's: it is the one Settings shows, and a
         // TikTok push carrying none must not wipe it.
-        Site::Tiktok => {
-            state.tiktok = SiteRecord {
+        Site::Tiktok | Site::Reddit | Site::X => {
+            *state.record_mut(site) = SiteRecord {
                 last_push_at: Some(push.captured_at),
                 cookie_count: kept.len(),
                 cookie_names: names_of(kept),
@@ -276,13 +290,10 @@ pub(super) fn record_rotation(site: Site, cookies: &[Cookie]) -> AppResult<()> {
             state.cookie_count = cookies.len();
             state.cookie_names = names_of(cookies);
         }
-        Site::Tiktok => {
-            state.tiktok.cookie_count = cookies.len();
-            state.tiktok.cookie_names = names_of(cookies);
-        }
-        Site::Other => {
-            state.other.cookie_count = cookies.len();
-            state.other.cookie_names = names_of(cookies);
+        site => {
+            let record = state.record_mut(site);
+            record.cookie_count = cookies.len();
+            record.cookie_names = names_of(cookies);
         }
     })
 }
@@ -301,9 +312,24 @@ fn clear(state: &mut LinkState, site: Site) {
             state.cookie_count = 0;
             state.cookie_names = Vec::new();
         }
-        Site::Tiktok => state.tiktok = SiteRecord::default(),
-        Site::Other => state.other = SiteRecord::default(),
+        site => *state.record_mut(site) = SiteRecord::default(),
     }
+}
+
+/// Note that the user removed `site`'s session in the app, so the pushes that
+/// follow are not stored for it until its switch is turned on again.
+pub(super) fn mark_forgotten(site: Site) -> AppResult<()> {
+    update(|state| {
+        clear(state, site);
+        if site != Site::Other && !state.forgotten.contains(&site) {
+            state.forgotten.push(site);
+        }
+    })
+}
+
+/// Take `site` off the removed list: its switch was turned on in the popup.
+pub(super) fn resume(site: Site) -> AppResult<()> {
+    update(|state| state.forgotten.retain(|kept| *kept != site))
 }
 
 /// Leave a note for the interface and the support paste. Best effort by
@@ -393,7 +419,7 @@ impl LinkState {
     pub(super) fn session_state_at(&self, site: Site, now: i64) -> SessionState {
         let last_push_at = match site {
             Site::Youtube => self.last_push_at,
-            Site::Tiktok => self.tiktok.last_push_at,
+            Site::Tiktok | Site::Reddit | Site::X => self.record(site).last_push_at,
             Site::Other => {
                 return if other_fresh(self.other.last_push_at, now) {
                     SessionState::Fresh
@@ -412,6 +438,26 @@ impl LinkState {
             SessionState::Stale
         } else {
             SessionState::Fresh
+        }
+    }
+
+    /// The record of a site other than YouTube, whose fields live on the
+    /// state itself.
+    pub fn record(&self, site: Site) -> &SiteRecord {
+        match site {
+            Site::Reddit => &self.reddit,
+            Site::X => &self.x,
+            Site::Other => &self.other,
+            Site::Tiktok | Site::Youtube => &self.tiktok,
+        }
+    }
+
+    fn record_mut(&mut self, site: Site) -> &mut SiteRecord {
+        match site {
+            Site::Reddit => &mut self.reddit,
+            Site::X => &mut self.x,
+            Site::Other => &mut self.other,
+            Site::Tiktok | Site::Youtube => &mut self.tiktok,
         }
     }
 
@@ -439,7 +485,20 @@ impl LinkState {
     /// this function's: the host answers an unpaired profile with an error
     /// rather than with a silent refusal, and only it knows how to say so.
     /// Which site the push is for is the caller's to have checked too.
+    ///
+    /// A signed-in push for a site whose session was removed in the app is not
+    /// stored, unless the user turned its switch on for it: the answer the
+    /// host sends back lists the site as removed, and the popup turns the
+    /// switch off when it reads that.
     pub fn accept_push(push: &Push, site: Site) -> AppResult<()> {
+        if load().forgotten.contains(&site) {
+            if push.signed_in && !push.resume {
+                return Ok(());
+            }
+            if push.resume {
+                resume(site)?;
+            }
+        }
         store::save(push, site)
     }
 
@@ -458,6 +517,9 @@ impl LinkState {
         if !load().is_bound_to(&peer.profile_id) {
             store::forget_all()?;
         }
+        // A claim is a button someone pressed: what was removed before it is
+        // the new binding's to lend again.
+        update(|state| state.forgotten.clear())?;
         bind(peer)
     }
 
@@ -581,6 +643,7 @@ mod tests {
             site: Some(site),
             domain: (site == Site::Other).then(|| "instagram.com".to_string()),
             signed_in: true,
+            resume: false,
             account_hint: None,
             captured_at: 1_900_000_000,
             cookies: vec![Cookie {

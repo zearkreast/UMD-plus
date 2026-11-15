@@ -23,7 +23,7 @@ import { cn } from '@/lib/cn';
 import { COLLAPSE } from '@/lib/motion';
 import { IS_MOBILE } from '@/lib/platform';
 import * as ipc from '@/services/ipc';
-import type { BridgeSessionState, BridgeStatus, Settings } from '@/types';
+import type { BridgeSite, BridgeSessionState, BridgeStatus, Settings } from '@/types';
 
 /**
  * How often the section re-reads the link while it is on screen.
@@ -105,7 +105,7 @@ export type LinkPhase = 'waiting' | 'signedOut' | 'quiet' | 'connected';
  */
 export function phaseOf(status: BridgeStatus): LinkPhase {
   if (!status.connected) return 'waiting';
-  const sessions = [status.session, status.tiktokSession];
+  const sessions = [status.session, status.tiktokSession, status.redditSession, status.xSession];
   if (sessions.includes('fresh')) return 'connected';
   if (sessions.includes('stale')) return 'quiet';
   return 'signedOut';
@@ -236,6 +236,16 @@ export function BrowserLinkCard({ settings, update, initialStatus = null }: Brow
     }
   };
 
+  // As Disconnect, the refresh that follows is the confirmation.
+  const forget = async (site: BridgeSite) => {
+    setProblem(null);
+    try {
+      await ipc.bridgeForgetSession(site);
+    } catch {
+      setProblem('settings.linkForgetFailed');
+    }
+  };
+
   const copyDiagnostics = async () => {
     setProblem(null);
     try {
@@ -357,28 +367,34 @@ export function BrowserLinkCard({ settings, update, initialStatus = null }: Brow
                           BODY_SIZE,
                         )}
                       >
-                        <dt className="text-fg">YouTube</dt>
-                        <dd>
-                          <SiteState fresh={status.session === 'fresh'}>
-                            {t(SITE_STATE[status.session])}
-                          </SiteState>
-                        </dd>
-                        <dt className="text-fg">TikTok</dt>
-                        <dd>
-                          <SiteState fresh={status.tiktokSession === 'fresh'}>
-                            {t(SITE_STATE[status.tiktokSession])}
-                          </SiteState>
-                        </dd>
+                        {(
+                          [
+                            ['youtube', 'YouTube', status.session],
+                            ['tiktok', 'TikTok', status.tiktokSession],
+                            ['reddit', 'Reddit', status.redditSession ?? 'none'],
+                            ['x', 'X', status.xSession ?? 'none'],
+                          ] as const
+                        ).map(([site, name, state]) => (
+                          <SiteRow
+                            key={site}
+                            name={name}
+                            fresh={state === 'fresh'}
+                            label={t(SITE_STATE[state])}
+                            onForget={state === 'none' ? null : () => void forget(site)}
+                          />
+                        ))}
                         {/* Whichever site İndir last lent a sign-in for,
                             named by its domain while it is held. */}
-                        <dt className="text-fg">{t('settings.linkOtherSites')}</dt>
-                        <dd className="min-w-0">
-                          <SiteState fresh={other != null}>
-                            {other
+                        <SiteRow
+                          name={t('settings.linkOtherSites')}
+                          fresh={other != null}
+                          label={
+                            other
                               ? t('settings.linkOtherFresh', { site: other })
-                              : t('settings.linkSiteNone')}
-                          </SiteState>
-                        </dd>
+                              : t('settings.linkSiteNone')
+                          }
+                          onForget={other != null ? () => void forget('other') : null}
+                        />
                       </dl>
                       {/* TikTok's switch is new and off until turned on, so
                           the one place that says it exists is here, beside
@@ -458,6 +474,49 @@ export function BrowserLinkCard({ settings, update, initialStatus = null }: Brow
           </>
         )}
       </SettingGroup>
+    </>
+  );
+}
+
+/**
+ * One site's line: its name, whether a sign-in is held, and a quiet way to
+ * remove it. Removing keeps the browser connected; the extension turns that
+ * site's switch off when it next hears from the app.
+ */
+function SiteRow({
+  name,
+  fresh,
+  label,
+  onForget,
+}: {
+  name: string;
+  fresh: boolean;
+  label: string;
+  onForget: (() => void) | null;
+}) {
+  const { t } = useTranslation();
+  return (
+    <>
+      <dt className="text-fg">{name}</dt>
+      <dd className="flex min-w-0 items-center justify-end gap-1.5">
+        <SiteState fresh={fresh}>{label}</SiteState>
+        {onForget ? (
+          <button
+            type="button"
+            onClick={onForget}
+            aria-label={t('settings.linkForgetSite', { site: name })}
+            title={t('settings.linkForgetSite', { site: name })}
+            className="rounded-md px-1.5 py-0.5 text-[12px] text-fg-faint transition-colors hover:bg-fill hover:text-fg-muted"
+          >
+            {t('settings.linkForget')}
+          </button>
+        ) : (
+          // Holds the place, so the marks of every row line up.
+          <span aria-hidden="true" className="invisible px-1.5 py-0.5 text-[12px]">
+            {t('settings.linkForget')}
+          </span>
+        )}
+      </dd>
     </>
   );
 }

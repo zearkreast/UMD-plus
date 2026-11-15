@@ -52,6 +52,8 @@ fn file_name(site: Site) -> &'static str {
     match site {
         Site::Youtube => "session.bin",
         Site::Tiktok => "session-tiktok.bin",
+        Site::Reddit => "session-reddit.bin",
+        Site::X => "session-x.bin",
         Site::Other => "session-other.bin",
     }
 }
@@ -94,6 +96,9 @@ pub(super) fn belongs(site: Site, jar_domain: Option<&str>, domain: &str) -> boo
     match site {
         Site::Youtube => true,
         Site::Tiktok => under_domain(domain, "tiktok.com"),
+        Site::Reddit => under_domain(domain, "reddit.com"),
+        // X answers on both of its names, and keeps a sign-in on each.
+        Site::X => under_domain(domain, "x.com") || under_domain(domain, "twitter.com"),
         Site::Other => jar_domain.is_some_and(|jar| under_domain(domain, jar)),
     }
 }
@@ -326,6 +331,11 @@ impl CookieLease {
     /// The file to hand the engine, as `--cookies` wants it.
     pub fn path(&self) -> &Path {
         &self.path
+    }
+
+    /// Whether this is a site's own session rather than the other-site one.
+    pub fn is_own_site(&self) -> bool {
+        self.site != Site::Other
     }
 
     /// Say that the run this lease was handed to failed with `err` on `url`.
@@ -726,6 +736,18 @@ mod tests {
         for anything in [".youtube.com", ".google.com", "accounts.youtube.com"] {
             assert!(belongs(Site::Youtube, None, anything));
         }
+
+        // Reddit's keeps reddit.com; X's both of its names, and nothing else.
+        assert!(belongs(Site::Reddit, None, ".reddit.com") && belongs(Site::Reddit, None, "old.reddit.com"));
+        assert!(!belongs(Site::Reddit, None, ".redditmedia.com"));
+        for kept in [".x.com", "x.com", ".twitter.com", "api.twitter.com"] {
+            assert!(belongs(Site::X, None, kept), "dropped {kept}");
+        }
+        for dropped in [".twimg.com", "box.com", ".x.com.example.test"] {
+            assert!(!belongs(Site::X, None, dropped), "kept {dropped}");
+        }
+        assert_eq!(file_name(Site::Reddit), "session-reddit.bin");
+        assert_eq!(file_name(Site::X), "session-x.bin");
     }
 
     fn cookie(domain: &str, name: &str) -> Cookie {
@@ -752,6 +774,7 @@ mod tests {
             site: Some(Site::Other),
             domain: domain.map(str::to_string),
             signed_in,
+            resume: false,
             account_hint: None,
             captured_at: 1_900_000_000,
             cookies,

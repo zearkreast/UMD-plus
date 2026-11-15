@@ -244,6 +244,7 @@ pub fn run() {
             commands::bridge_status,
             commands::bridge_repair,
             commands::bridge_disconnect,
+            commands::bridge_forget_session,
             commands::bridge_diagnostics,
             commands::take_handoffs,
             commands::get_tools,

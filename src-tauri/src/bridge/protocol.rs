@@ -179,11 +179,19 @@ impl Browser {
 pub enum Site {
     Youtube,
     Tiktok,
+    Reddit,
+    X,
     Other,
 }
 
 impl Site {
-    pub const ALL: [Site; 3] = [Site::Youtube, Site::Tiktok, Site::Other];
+    pub const ALL: [Site; 5] = [Site::Youtube, Site::Tiktok, Site::Reddit, Site::X, Site::Other];
+
+    /// The sites whose session, when there is one, is lent to the first
+    /// attempt of a link of theirs rather than kept back for a refusal.
+    pub fn lent_first(self) -> bool {
+        matches!(self, Site::Tiktok | Site::Reddit | Site::X)
+    }
 }
 
 /// The registrable part of a host -- `bbc.co.uk` for `www.bbc.co.uk`,
@@ -238,7 +246,7 @@ pub fn registrable_domain(host: &str) -> Option<String> {
 /// are never an "other" site: YouTube and Google (whose sign-in is the YouTube
 /// switch's), and TikTok. Compared with the name before the suffix, so
 /// `google.com.tr` and `youtube.de` are caught as well as the `.com`s.
-const OWN_SWITCH_NAMES: [&str; 9] = [
+const OWN_SWITCH_NAMES: [&str; 14] = [
     "youtube",
     "youtu",
     "youtube-nocookie",
@@ -248,6 +256,11 @@ const OWN_SWITCH_NAMES: [&str; 9] = [
     "tiktok",
     "tiktokv",
     "tiktokcdn",
+    "reddit",
+    "redd",
+    "x",
+    "twitter",
+    "twimg",
 ];
 
 /// Whether `domain` may name the site of an `other` push: a registrable domain
@@ -425,6 +438,11 @@ pub struct Push {
     /// that site's stored session on a signed-out push rather than keeping a
     /// jar that has outlived its sign-in.
     pub signed_in: bool,
+    /// The user turned this site's switch on in the popup just now. A site
+    /// whose session was removed in the app is taken again only on such a
+    /// push; the pushes nobody pressed anything for are not stored for it.
+    #[serde(default)]
+    pub resume: bool,
     /// A masked hint at the account, for the app to show. Never an exact
     /// address the user did not ask to have displayed.
     #[serde(default)]
@@ -585,6 +603,15 @@ pub struct HostStatus {
     /// old it is, never what it holds.
     #[serde(default)]
     pub tiktok_session: SessionState,
+    #[serde(default)]
+    pub reddit_session: SessionState,
+    #[serde(default)]
+    pub x_session: SessionState,
+    /// The sites whose session was removed in the app. The popup turns their
+    /// switches off when it sees one here, and the host stores nothing more
+    /// for them until a switch is turned on again.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub forgotten: Vec<Site>,
     /// The other-site session: `fresh` for the hour after İndir lent one,
     /// `none` otherwise. It is never `stale` -- a lapsed one is deleted, not
     /// kept to explain anything.
@@ -704,6 +731,9 @@ mod tests {
             can_download: true,
             sites: vec![],
             tiktok_session: SessionState::None,
+            reddit_session: SessionState::None,
+            x_session: SessionState::None,
+            forgotten: vec![],
             other_session: SessionState::None,
             other_domain: None,
         }
@@ -819,7 +849,10 @@ mod tests {
             ..status()
         };
         let text = serde_json::to_value(&current).unwrap();
-        assert_eq!(text["sites"], serde_json::json!(["youtube", "tiktok", "other"]));
+        assert_eq!(text["sites"], serde_json::json!(["youtube", "tiktok", "reddit", "x", "other"]));
+        assert_eq!(text["redditSession"], "none");
+        assert_eq!(text["xSession"], "none");
+        assert!(text.get("forgotten").is_none(), "nothing removed, no field");
         assert_eq!(text["tiktokSession"], "none");
         assert_eq!(text["otherSession"], "none");
         // No site to name, so no field: an older popup sees nothing new.
@@ -868,9 +901,14 @@ mod tests {
         assert_eq!(push.domain.as_deref(), Some("instagram.com"));
         assert_eq!(push.check_other(), Ok(()));
 
-        for kept in ["x.com", "facebook.com", "bbc.co.uk", "trendyol.com.tr", "vimeo.com", "xn--80ak6aa92e.com"] {
+        for kept in ["dailymotion.com", "facebook.com", "bbc.co.uk", "trendyol.com.tr", "vimeo.com", "xn--80ak6aa92e.com"] {
             let push = other_push(serde_json::json!({ "domain": kept }));
             assert_eq!(push.check_other(), Ok(()), "{kept}");
+        }
+        // Reddit and X have switches of their own.
+        for own in ["reddit.com", "x.com", "twitter.com"] {
+            let push = other_push(serde_json::json!({ "domain": own }));
+            assert!(push.check_other().is_err(), "{own}");
         }
     }
 

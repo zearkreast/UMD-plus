@@ -1044,6 +1044,8 @@
       // None by default, which is every link until the extension's TikTok
       // switch is turned on, and the state that shows the hint about it.
       tiktokSession: tiktok,
+      redditSession: bridge.forgotten?.has('reddit') ? 'none' : 'fresh',
+      xSession: 'none',
       tiktokLastPushAt:
         tiktok === 'none' ? null : Math.floor(now / 1000) - (tiktok === 'stale' ? 9 * 86_400 : 60),
       otherSession: other,
@@ -1060,6 +1062,12 @@
       return commands.bridge_status();
     },
     bridge_disconnect: () => commands.bridge_status(),
+    bridge_forget_session: ({ site }) => {
+      bridge.forgotten = bridge.forgotten ?? new Set();
+      bridge.forgotten.add(site);
+      emit('bridge://changed', null);
+      return commands.bridge_status();
+    },
     bridge_diagnostics: () => 'bridge: ok',
     // Empties the inbox, as the real one deletes each file it read.
     take_handoffs: () => inbox.splice(0),

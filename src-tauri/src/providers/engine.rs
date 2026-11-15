@@ -108,16 +108,23 @@ impl EngineProvider {
         // page a handed-over link came from, which is why `source` matters
         // here. No refusal from such a site names a sign-in plainly enough to
         // wait for one, and the extension sent that jar for this very link.
-        let other = bridge::other_lease(
+        // TikTok, Reddit and X take their own session from the first look
+        // when the browser lends one (`bridge::first_lease`).
+        let other = bridge::first_lease(
             settings,
             url,
             source.and_then(|source| source.page_url.as_deref()),
         );
+        let own_session = other.as_ref().is_some_and(bridge::CookieLease::is_own_site);
         let other_jar = other
             .as_ref()
             .map(|lease| lease.path().to_string_lossy().into_owned());
         let output = run_engine(&engine, &args, url, other_jar.as_deref()).await?;
         let mut result = interpret(&output, url);
+        // A wall that stands with the account behind it is that account's.
+        if own_session {
+            result = result.map_err(AppError::after_session);
+        }
         if let Some(lease) = &other {
             // A run that used it and was refused is not repeated with it: the
             // engine tries once, and the queue's own repeats of this download
@@ -128,7 +135,7 @@ impl EngineProvider {
             }
         }
 
-        if let Err(refusal) = &result {
+        if let (false, Err(refusal)) = (own_session, &result) {
             if let Some(session) = session_for(refusal, url, settings) {
                 let jar = session.path().to_string_lossy().into_owned();
                 let retried = run_engine(&engine, &args, url, Some(jar.as_str())).await?;
@@ -300,6 +307,8 @@ fn worth_a_session(err: &AppError, site: bridge::Site) -> bool {
                 ..
             }
         ),
+        // Lent on the first run when there is one (`bridge::first_lease`).
+        bridge::Site::Reddit | bridge::Site::X => false,
         // Lent on the first run or not at all (`bridge::other_lease`); no
         // refusal is a reason to try it a second time.
         bridge::Site::Other => false,
@@ -2618,14 +2627,28 @@ mod tests {
         ] {
             assert_eq!(Site::for_url(tiktok), Some(Site::Tiktok), "{tiktok}");
         }
+        for reddit in ["https://www.reddit.com/r/a/comments/1/x/", "https://old.reddit.com/r/a/", "https://redd.it/abc"] {
+            assert_eq!(Site::for_url(reddit), Some(Site::Reddit), "{reddit}");
+        }
+        for x in ["https://x.com/a/status/1", "https://twitter.com/a/status/1", "https://mobile.twitter.com/a/status/1"] {
+            assert_eq!(Site::for_url(x), Some(Site::X), "{x}");
+        }
         for neither in [
             "https://tiktok.com.example.test/@a/video/1",
             "https://nottiktok.com/@a/video/1",
             "https://www.instagram.com/p/x/",
             "https://youtube.com.example.test/watch?v=a",
+            "https://notreddit.com/r/a/",
+            "https://box.com/a",
+            "https://twitter.com.example.test/a",
         ] {
             assert_eq!(Site::for_url(neither), None, "{neither}");
         }
+
+        // TikTok, Reddit and X lend theirs from the first attempt; YouTube
+        // keeps its own for the walls that ask for it.
+        assert!(Site::Tiktok.lent_first() && Site::Reddit.lent_first() && Site::X.lent_first());
+        assert!(!Site::Youtube.lent_first() && !Site::Other.lent_first());
     }
 
     #[test]
