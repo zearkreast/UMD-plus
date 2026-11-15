@@ -373,6 +373,7 @@ async fn downloads_a_spotify_song_as_that_song() {
         collection: None,
         subtitle_language: None,
         embed_subtitles: false,
+        split_chapters: false,
         source: None,
     };
     providers::remember_analysis(&request.url, &settings, &album);
@@ -465,6 +466,7 @@ async fn a_video_arrives_with_its_subtitles_chapters_tags_and_cover() {
         collection: Some("A list".into()),
         subtitle_language: Some("en".into()),
         embed_subtitles,
+        split_chapters: false,
         source: None,
     };
 
@@ -617,6 +619,7 @@ async fn a_tiktok_video_whose_best_picture_is_silent_downloads_with_its_sound() 
             collection: None,
             subtitle_language: None,
             embed_subtitles: false,
+            split_chapters: false,
             source: None,
         };
         let mut last_received = 0u64;

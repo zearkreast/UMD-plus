@@ -83,6 +83,10 @@ pub struct Settings {
     /// its data. Means nothing on a desktop, which is not asked.
     #[serde(default)]
     pub wifi_only: bool,
+    /// Take the parts SponsorBlock marks out of a YouTube download. Off unless
+    /// asked for: it sends the video's id to SponsorBlock.
+    #[serde(default)]
+    pub skip_sponsors: bool,
 
     // Downloads
     pub download_dir: String,
@@ -172,6 +176,7 @@ impl Default for Settings {
             quick_download: false,
             save_cover: false,
             wifi_only: false,
+            skip_sponsors: false,
 
             download_dir: paths::default_download_dir().to_string_lossy().into_owned(),
             default_mode: DownloadMode::Video,
@@ -341,7 +346,7 @@ mod tests {
     fn settings_saved_before_the_schedule_still_load() {
         let mut written = serde_json::to_value(Settings::default()).unwrap();
         let object = written.as_object_mut().unwrap();
-        for key in ["scheduleEnabled", "scheduleStart", "scheduleEnd", "speedLimitKb", "embedMetadata", "autoUpdate", "resumeOnLaunch", "quickDownload", "saveCover", "wifiOnly"] {
+        for key in ["scheduleEnabled", "scheduleStart", "scheduleEnd", "speedLimitKb", "embedMetadata", "autoUpdate", "resumeOnLaunch", "quickDownload", "saveCover", "wifiOnly", "skipSponsors"] {
             assert!(object.remove(key).is_some(), "{key}");
         }
         let read: Settings = serde_json::from_value(written).unwrap();

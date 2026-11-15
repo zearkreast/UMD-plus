@@ -73,6 +73,8 @@ export const tr: Record<TranslationKey, string> = {
   'options.qualityBestHint': 'Mevcut en yüksek video ve ses, birleştirilmiş',
   'options.audioBest': 'En iyi ses',
   'options.audioLanguage': 'Ses dili',
+  'options.splitChapters': 'Bölümlere ayır',
+  'options.splitChaptersHint': '{n} bölüm, yanındaki bir klasöre ayrı dosyalar olarak yazılır.',
   'options.subtitles': 'Altyazı',
   'options.subtitleAuto': '{name} (otomatik)',
   'options.subtitlePlacement': 'Nereye yazılsın',
@@ -406,6 +408,9 @@ export const tr: Record<TranslationKey, string> = {
     'Başlık, kanal, bölümler ve biçim izin veriyorsa kapak eklenir. FFmpeg gerekir.',
   'settings.wifiOnly': 'Yalnızca Wi-Fi ile indir',
   'settings.wifiOnlyHint': 'Mobil verideyken indirmeler başlamaz, Wi-Fi gelince kendiliğinden başlar. Süren bir indirme Wi-Fi kesilse de devam eder.',
+  'settings.skipSponsors': 'Sponsor bölümlerini atla',
+  'settings.skipSponsorsHint':
+    'YouTube videolarında topluluğun SponsorBlock ile işaretlediği sponsor, tanıtım ve "abone ol" bölümleri indirdikten sonra kesilir. Bunun için videonun kimliği SponsorBlock\'a sorulur.',
   'settings.saveCover': 'Kapağı ayrı kaydet',
   'settings.saveCoverHint': 'Videonun ya da şarkının kapak görseli, dosyanın yanına aynı adla kaydedilir.',
   'settings.connectionsCapped': 'Düşük kaynak modu açık, bu yüzden en fazla iki tane kullanılır.',

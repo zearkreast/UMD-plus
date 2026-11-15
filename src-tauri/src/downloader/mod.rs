@@ -14,6 +14,7 @@
 //! out are [`schedule`].
 
 pub mod control;
+pub mod cuts;
 pub mod engine_dl;
 pub mod host_limits;
 pub mod http;
@@ -428,6 +429,21 @@ async fn download_analyzed(
         _ => produced,
     };
 
+    // Sponsored parts out of a YouTube download, when asked. The chapters
+    // move with what is left, for the file and for a split by chapters.
+    let mut metadata = metadata;
+    let produced = match (settings.skip_sponsors, metadata.duration_sec, cuts::youtube_id(&metadata.canonical_url).or_else(|| cuts::youtube_id(&metadata.url))) {
+        (true, Some(length), Some(id)) if plan.image.is_none() && metadata.music.is_none() => {
+            on_update(aggregate.processing(DownloadStage::Finalizing, Some(95.0)));
+            let (file, kept) = cuts::take_out_sponsors(task_id, produced, &id, length, settings, &control, temp_dir).await?;
+            if !kept.is_empty() {
+                metadata.file_tags.chapters = cuts::shift_chapters(&metadata.file_tags.chapters, &kept);
+            }
+            file
+        }
+        _ => produced,
+    };
+
     let subtitle = match request.subtitle_language.as_deref().filter(|_| plan.video.is_some()) {
         Some(wanted) => {
             on_update(aggregate.processing(DownloadStage::Finalizing, Some(96.0)));
@@ -458,6 +474,10 @@ async fn download_analyzed(
     let final_path = finalize(&produced, &final_path)?;
     if let Some(subtitle) = subtitle {
         subtitles::keep_beside(&final_path, &subtitle.path, &subtitle.language);
+    }
+    if request.split_chapters && plan.image.is_none() {
+        let written = cuts::split_into_chapters(task_id, &final_path, &metadata.file_tags.chapters, &control).await?;
+        log_info!("downloader", "task {task_id}: wrote {written} chapters beside the file");
     }
     // The cover as a picture of its own, beside the file and named after it.
     // Not for a picture, which is its own cover. Losing it loses no download.
@@ -1347,6 +1367,7 @@ mod tests {
             collection: None,
             subtitle_language: None,
             embed_subtitles: false,
+            split_chapters: false,
             source,
         }
     }

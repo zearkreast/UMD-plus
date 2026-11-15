@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/Button';
 import { Dropdown } from '@/components/ui/Dropdown';
 import { InlineNotice } from '@/components/ui/InlineNotice';
 import { Segmented, type SegmentedOption } from '@/components/ui/Segmented';
+import { Toggle } from '@/components/ui/Toggle';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { errorCopy, useTranslation } from '@/i18n';
 import { cn } from '@/lib/cn';
@@ -229,6 +230,22 @@ export function DownloadOptionsPanel({
             />
           )}
         </div>
+      )}
+
+      {(metadata.chapterCount ?? 0) > 1 && options.mode !== 'image' && !metadata.listing && (
+        <label className="mt-3 flex items-center justify-between gap-3 rounded-[var(--radius-control)] bg-fill px-3 py-2.5">
+          <span className="min-w-0">
+            <span className="block text-[13px] font-medium text-fg">{t('options.splitChapters')}</span>
+            <span className="block text-[12px] text-fg-muted">
+              {t('options.splitChaptersHint', { n: metadata.chapterCount ?? 0 })}
+            </span>
+          </span>
+          <Toggle
+            checked={options.splitChapters}
+            onChange={(checked) => onChange({ splitChapters: checked })}
+            label={t('options.splitChapters')}
+          />
+        </label>
       )}
 
       {watermark !== 'hidden' && (

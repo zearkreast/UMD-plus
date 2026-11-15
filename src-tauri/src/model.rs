@@ -220,9 +220,15 @@ pub struct MediaMetadata {
     /// The subtitles it offers.
     #[serde(default)]
     pub subtitles: Vec<SubtitleTrack>,
-    /// What the source says of it for the finished file to carry.
-    #[serde(skip)]
+    /// What the source says of it for the finished file to carry. The
+    /// interface hears only how many chapters there are, which decides whether
+    /// a split by chapters is offered.
+    #[serde(skip_deserializing, rename = "chapterCount", serialize_with = "chapter_count")]
     pub file_tags: FileTags,
+}
+
+fn chapter_count<S: serde::Serializer>(tags: &FileTags, serializer: S) -> Result<S::Ok, S::Error> {
+    serializer.serialize_u32(tags.chapters.len() as u32)
 }
 
 /// A recording's credits and chapters, as the source gives them.
@@ -397,6 +403,9 @@ pub struct DownloadRequest {
     /// Write them into the video rather than beside it.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub embed_subtitles: bool,
+    /// Also write each chapter as a file of its own, in a folder beside it.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub split_chapters: bool,
     /// The page and headers a link was found with, when the browser extension
     /// handed it over. `None` for everything typed or pasted.
     #[serde(default, skip_serializing_if = "Option::is_none")]

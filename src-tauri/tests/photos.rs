@@ -78,6 +78,7 @@ fn request(url: &str, entry: Option<u32>, mode: DownloadMode) -> DownloadRequest
         collection: None,
         subtitle_language: None,
         embed_subtitles: false,
+        split_chapters: false,
         source: None,
     }
 }

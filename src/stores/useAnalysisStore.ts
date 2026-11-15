@@ -31,6 +31,8 @@ export interface DownloadOptions {
   subtitleLanguage: string | null;
   /** Write them into the video rather than beside it. */
   embedSubtitles: boolean;
+  /** Also write each chapter as a file of its own. */
+  splitChapters: boolean;
 }
 
 interface AnalysisState {
@@ -82,6 +84,7 @@ const DEFAULT_OPTIONS: DownloadOptions = {
   audioLanguage: null,
   subtitleLanguage: null,
   embedSubtitles: false,
+  splitChapters: false,
 };
 
 /**

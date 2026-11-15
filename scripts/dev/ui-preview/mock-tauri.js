@@ -73,6 +73,7 @@
     quickDownload: false,
     saveCover: false,
     wifiOnly: false,
+    skipSponsors: false,
     downloadDir: 'C:\\Users\\melik\\Downloads\\Universal Downloader',
     defaultMode: 'video',
     defaultQuality: { type: 'best' },
