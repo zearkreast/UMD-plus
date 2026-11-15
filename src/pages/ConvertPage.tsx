@@ -59,6 +59,12 @@ const KIND_LABELS: Record<ConvertKind, TranslationKey> = {
   image: 'convert.kind.image',
 };
 
+/** The sizes offered for a video: the upload limits people meet most. */
+const SIZE_LIMITS_MB = [8, 10, 25, 50, 100, 500];
+
+/** Video targets whose encoder is not given a bitrate, so no size is offered. */
+const SIZELESS_TARGETS = new Set(['webm', 'wmv', 'mpg', 'ogv']);
+
 const QUALITY_LABELS: Record<ConvertQuality, TranslationKey> = {
   original: 'convert.qualityOriginal',
   high: 'convert.qualityHigh',
@@ -108,6 +114,8 @@ export function ConvertPage({ settings }: { settings: Settings }) {
   const [choices, setChoices] = useState(DEFAULT_CHOICES);
   const [iconSide, setIconSide] = useState(DEFAULT_ICON_SIDE);
   const [bitrate, setBitrate] = useState<number | null>(null);
+  // The most a converted video may weigh, in megabytes; null for no limit.
+  const [sizeLimit, setSizeLimit] = useState<number | null>(null);
   const [outputDir, setOutputDir] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
 
@@ -236,6 +244,9 @@ export function ConvertPage({ settings }: { settings: Settings }) {
     if (typeof selected === 'string') setOutputDir(selected);
   }, [outputDir, settings.downloadDir]);
 
+  // A size is met with a bitrate, which only the H.264 targets take here.
+  const sizable = kind === 'video' && !SIZELESS_TARGETS.has(target);
+
   const startConversion = useCallback(async () => {
     setSubmitError(null);
     const pictured = kind === 'gif' || kind === 'image';
@@ -247,11 +258,12 @@ export function ConvertPage({ settings }: { settings: Settings }) {
       maxSide: target === 'ico' ? iconSide : pictured ? choice.size : null,
       fps: kind === 'video' || kind === 'gif' ? choice.fps : null,
       audioBitrateKbps: kind === 'audio' && tunable ? bitrate : null,
+      targetSizeMb: sizable ? sizeLimit : null,
     });
     // Success needs no announcement: the files leave this list and turn up as
     // rows in the one below.
     if (result.error) setSubmitError(result.error);
-  }, [bitrate, choice, iconSide, kind, outputDir, submit, target, tunable]);
+  }, [bitrate, choice, iconSide, kind, outputDir, sizable, sizeLimit, submit, target, tunable]);
 
   const installFfmpeg = useCallback(async () => {
     setInstallError(null);
@@ -458,8 +470,31 @@ export function ConvertPage({ settings }: { settings: Settings }) {
             />
           )}
 
-          {/* A lossless picture format has no quality to choose. */}
-          {qualities.length > 0 && tunable && (
+          {sizable && (
+            <SettingRow
+              title={t('convert.sizeLimit')}
+              description={sizeLimit == null ? undefined : t('convert.sizeLimitHint')}
+              stacked={IS_MOBILE}
+              control={
+                <Dropdown
+                  className={CONTROL_WIDTH}
+                  value={sizeLimit == null ? 'none' : String(sizeLimit)}
+                  options={[
+                    { value: 'none', label: t('convert.sizeLimitNone') },
+                    ...SIZE_LIMITS_MB.map((megabytes) => ({
+                      value: String(megabytes),
+                      label: `${megabytes} MB`,
+                    })),
+                  ]}
+                  onChange={(value) => setSizeLimit(value === 'none' ? null : Number(value))}
+                />
+              }
+            />
+          )}
+
+          {/* A lossless picture format has no quality to choose; nor has a
+              video held to a size, whose size is the choice. */}
+          {qualities.length > 0 && tunable && !(sizable && sizeLimit != null) && (
             <SettingRow
               title={t('convert.quality')}
               stacked={IS_MOBILE}
