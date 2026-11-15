@@ -434,6 +434,8 @@ export interface ConvertOptions {
   /** Frame rate for a video or a GIF. Null keeps the source's. */
   fps: number | null;
   audioBitrateKbps: number | null;
+  /** The most a converted video may weigh, in megabytes. Null: no limit. */
+  targetSizeMb?: number | null;
 }
 
 export interface ConvertRequest {

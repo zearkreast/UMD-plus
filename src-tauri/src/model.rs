@@ -918,6 +918,10 @@ pub struct ConvertOptions {
     pub fps: Option<f64>,
     /// Audio bitrate in kbps. `None` derives one from the source.
     pub audio_bitrate_kbps: Option<u32>,
+    /// The most a converted video may weigh, in megabytes. The bitrate and the
+    /// frame are worked out from it, in place of a quality. `None`: no limit.
+    #[serde(default)]
+    pub target_size_mb: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

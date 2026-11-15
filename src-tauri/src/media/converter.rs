@@ -535,6 +535,7 @@ fn copy_is_plausible(
     match kind {
         ConvertKind::Video => {
             options.quality == ConvertQuality::Original
+                && size_budget(target, probe, options).is_none()
                 && !probe.still
                 && !shrinks(options.max_height, probe.height)
                 && video_rate(probe, options.fps).is_none()
@@ -762,6 +763,54 @@ fn crf_for(target: &str, quality: ConvertQuality) -> &'static str {
 
 /// Whether a video container is filled with H.264, the one family a graphics
 /// card is asked to encode.
+/// What a video is encoded at to come out no heavier than was asked.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SizeBudget {
+    pub video_kbps: u32,
+    /// Zero for a file with no sound.
+    pub audio_kbps: u32,
+    /// The tallest frame the video bitrate can carry without falling apart.
+    pub max_height: u32,
+}
+
+/// The part of the file left to picture and sound once the container has
+/// taken its share.
+const PAYLOAD: f64 = 0.97;
+
+/// The bitrates and frame that bring `probe` in under the size `options` ask
+/// for. `None` when no size was asked, when the target's encoder takes no
+/// bitrate here, or when the file's length is unknown and nothing can be
+/// divided by it.
+pub fn size_budget(target: &str, probe: &MediaProbe, options: &ConvertOptions) -> Option<SizeBudget> {
+    let megabytes = options.target_size_mb.filter(|size| *size > 0)?;
+    if !takes_h264(target) || probe.still {
+        return None;
+    }
+    let seconds = probe.duration_sec.filter(|length| *length > 0.5)?;
+
+    let wanted = f64::from(megabytes) * 8.0 * 1024.0 * PAYLOAD / seconds;
+    // Never more than the source carries: a file already under the size
+    // would otherwise be padded up to it.
+    let carried = probe.size_bytes as f64 * 8.0 / 1000.0 / seconds;
+    let total = if carried > 0.0 { wanted.min(carried) } else { wanted };
+
+    let audio_kbps: u32 = match (probe.has_audio, total) {
+        (false, _) => 0,
+        (true, rate) if rate >= 1000.0 => 128,
+        (true, rate) if rate >= 400.0 => 96,
+        (true, _) => 64,
+    };
+    let video_kbps = (total - f64::from(audio_kbps)).max(64.0) as u32;
+    let max_height = match video_kbps {
+        rate if rate >= 2500 => 1080,
+        rate if rate >= 1100 => 720,
+        rate if rate >= 500 => 480,
+        rate if rate >= 250 => 360,
+        _ => 240,
+    };
+    Some(SizeBudget { video_kbps, audio_kbps, max_height })
+}
+
 fn takes_h264(target: &str) -> bool {
     !matches!(target, "webm" | "wmv" | "mpg" | "ogv")
 }
@@ -919,7 +968,12 @@ fn video_encode_args(
     // Cap the height without ever enlarging a smaller source, and keep both
     // sides even either way: H.264 cannot encode odd dimensions in 4:2:0, and
     // a GIF or a screen recording is often exactly that.
-    let mut filters = vec![match options.max_height {
+    let budget = size_budget(target, probe, options);
+    let height_cap = match (options.max_height, budget) {
+        (Some(asked), Some(budget)) => Some(asked.min(budget.max_height)),
+        (asked, budget) => asked.or(budget.map(|budget| budget.max_height)),
+    };
+    let mut filters = vec![match height_cap {
         Some(height) => format!("scale=-2:'trunc(min({height},ih)/2)*2'"),
         None => "scale='trunc(iw/2)*2':'trunc(ih/2)*2'".to_string(),
     }];
@@ -961,6 +1015,23 @@ fn video_encode_args(
             "-b:v".into(),
             "0".into(),
         ]),
+        // To a size: a bitrate held under a ceiling, which is what keeps a
+        // busy scene from spending the quiet ones' share and overshooting.
+        _ if budget.is_some() => {
+            let rate = budget.map_or(0, |budget| budget.video_kbps);
+            args.extend([
+                "-c:v".into(),
+                "libx264".into(),
+                "-b:v".into(),
+                format!("{rate}k"),
+                "-maxrate".into(),
+                format!("{rate}k"),
+                "-bufsize".into(),
+                format!("{}k", rate * 2),
+                "-preset".into(),
+                "medium".into(),
+            ]);
+        }
         _ => args.extend([
             "-c:v".into(),
             "libx264".into(),
@@ -978,7 +1049,10 @@ fn video_encode_args(
     // already suits the container: there is nothing to gain from encoding it
     // again, and something to lose.
     let acodec = probe.audio_codec.as_deref().unwrap_or("");
-    if options.quality == ConvertQuality::Original
+    if let Some(budget) = budget.filter(|budget| budget.audio_kbps > 0) {
+        args.extend(["-c:a".into(), video_container_audio(target).into()]);
+        args.extend(["-b:a".into(), format!("{}k", budget.audio_kbps)]);
+    } else if options.quality == ConvertQuality::Original
         && !acodec.is_empty()
         && audio_fits_video(target, acodec)
     {
@@ -1460,7 +1534,10 @@ impl ConvertManager {
         if copy_is_plausible(target, job.kind, &probed, &job.options) {
             passes.push(Pass::Copy);
         }
-        if job.kind == ConvertKind::Video && takes_h264(target) && settings.hardware_acceleration {
+        // A size is met by the CPU encoder alone, whose rate control is the
+        // one the budget was worked out for.
+        let sized = size_budget(target, &probed, &job.options).is_some();
+        if job.kind == ConvertKind::Video && takes_h264(target) && settings.hardware_acceleration && !sized {
             passes.push(Pass::Hardware);
         }
         passes.push(Pass::Software);
@@ -1770,7 +1847,53 @@ mod tests {
             max_side: None,
             fps: None,
             audio_bitrate_kbps: None,
+            target_size_mb: None,
         }
+    }
+
+    #[test]
+    fn a_size_is_divided_between_picture_and_sound() {
+        let probe = MediaProbe {
+            duration_sec: Some(204.0),
+            size_bytes: 182 * 1024 * 1024,
+            has_audio: true,
+            ..sample_probe()
+        };
+        let sized = |megabytes| ConvertOptions { target_size_mb: Some(megabytes), ..options("mp4") };
+
+        // 25 MB over 3:24 is about 974 kbit/s, 96 of it for the sound.
+        let budget = size_budget("mp4", &probe, &sized(25)).unwrap();
+        assert_eq!(budget.audio_kbps, 96);
+        assert!((870..=880).contains(&budget.video_kbps), "{}", budget.video_kbps);
+        assert_eq!(budget.max_height, 480);
+
+        // Never above what the file already carries.
+        let roomy = size_budget("mp4", &probe, &sized(4000)).unwrap();
+        assert!(roomy.video_kbps + roomy.audio_kbps <= 182 * 1024 * 1024 * 8 / 1000 / 204);
+
+        assert!(size_budget("mp4", &probe, &options("mp4")).is_none(), "no size asked");
+        assert!(size_budget("webm", &probe, &sized(25)).is_none(), "no bitrate taken here");
+        let endless = MediaProbe { duration_sec: None, ..probe.clone() };
+        assert!(size_budget("mp4", &endless, &sized(25)).is_none());
+    }
+
+    #[test]
+    fn a_size_is_encoded_to_a_bitrate_and_never_copied() {
+        let probe = MediaProbe {
+            duration_sec: Some(204.0),
+            size_bytes: 182 * 1024 * 1024,
+            has_audio: true,
+            ..sample_probe()
+        };
+        let sized = ConvertOptions { target_size_mb: Some(25), ..options("mp4") };
+        assert!(!copy_is_plausible("mp4", ConvertKind::Video, &probe, &sized));
+
+        let args = args_with("mp4", Pass::Software, &probe, &sized);
+        let rate = value_after(&args, "-b:v").expect("a bitrate");
+        assert_eq!(value_after(&args, "-maxrate").as_deref(), Some(rate.as_str()));
+        assert_eq!(value_after(&args, "-b:a").as_deref(), Some("96k"));
+        assert!(!args.iter().any(|arg| arg == "-crf"));
+        assert!(value_after(&args, "-vf").unwrap().contains("min(480,ih)"));
     }
 
     fn with_quality(target: &str, quality: ConvertQuality) -> ConvertOptions {
