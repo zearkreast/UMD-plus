@@ -68,6 +68,7 @@ import {
   siteOfDomain,
   siteOfUrl,
   worthPushing,
+  LENT_FIRST,
 } from './sessions.js';
 // </full>
 
@@ -92,6 +93,8 @@ const REFRESH_ALARM = 'refresh';
 // and clears these out of a copy updated from an earlier version that had them.
 const OFF_KEY = 'linkOff';
 const TIKTOK_KEY = 'tiktokOn';
+// Reddit's and X's switches, kept the way TikTok's is.
+const SITE_KEYS = Object.freeze({ tiktok: TIKTOK_KEY, reddit: 'redditOn', x: 'xOn' });
 const OTHER_KEY = 'otherOn';
 const LINK_KEY = 'link';
 const TAB_PREFIX = 'tab:';
@@ -304,12 +307,21 @@ function setOtherOn(on) {
 // still depends on this profile holding the binding, as it always did.
 async function isOn(site) {
   if (site === 'youtube') return !(await isOff());
-  return site === OTHER ? isOtherOn() : isTiktokOn();
+  if (site === OTHER) return isOtherOn();
+  const key = SITE_KEYS[site];
+  return key ? (await chrome.storage.local.get(key))[key] === true : false;
 }
 
 function setOn(site, on) {
   if (site === 'youtube') return setOff(!on);
-  return site === OTHER ? setOtherOn(on) : setTiktokOn(on);
+  if (site === OTHER) return setOtherOn(on);
+  return chrome.storage.local.set({ [SITE_KEYS[site]]: on });
+}
+
+// The sites whose sessions the app removed on its Connection page, from its
+// last answer. Their switches go off here, and stay off until turned on again.
+function removedInApp(status, site) {
+  return Array.isArray(status?.forgotten) && status.forgotten.includes(site);
 }
 
 // Every switch the popup draws: the sites of SITES and the other sites' slot.
@@ -351,8 +363,10 @@ function wireCookie(cookie) {
 // domain that session lives on -- youtube.com for YouTube, tiktok.com for
 // TikTok -- and only ever while that site's switch is on.
 async function readJar(site) {
-  const jar = await chrome.cookies.getAll({ domain: SITES[site].domain });
-  const cookies = jar.map(wireCookie);
+  const cookies = [];
+  for (const domain of SITES[site].domains) {
+    for (const cookie of await chrome.cookies.getAll({ domain })) cookies.push(wireCookie(cookie));
+  }
   return { cookies, signedIn: signedIn(site, cookies) };
 }
 
@@ -367,9 +381,10 @@ async function isSignedIn(site) {
   }
 }
 
-async function sendJar(site, jar) {
+async function sendJar(site, jar, extra = {}) {
   const result = await callHost({
     ...pushHead(site),
+    ...extra,
     // Only the other sites' slot names its site, and only when it has one:
     // the empty jar that lets go of it needs no name.
     ...(typeof jar.domain === 'string' ? { domain: jar.domain } : {}),
@@ -385,11 +400,14 @@ async function sendJar(site, jar) {
   if (!result.ok && result.code === 'malformed' && pushHead(site).type === 'pushSite') {
     await setOn(site, false);
   }
+  // Removed in the app: the app kept nothing, and the switch goes off rather
+  // than send the jar again on every cookie the site writes.
+  if (result.ok && removedInApp(result.status, site)) await setOn(site, false);
   return result;
 }
 
-async function push(site) {
-  return sendJar(site, await readJar(site));
+async function push(site, extra = {}) {
+  return sendJar(site, await readJar(site), extra);
 }
 
 // Tell the app to let go of one site's session and keep the binding: a push
@@ -839,15 +857,24 @@ async function readPage(tabId, url, title) {
 // would read is the page's to say, and it reads nothing until İndir.
 async function linkReply(result) {
   const linkOff = await isOff();
-  const tiktokOn = await isTiktokOn();
   const lending = result.ok && result.status?.bound === true && result.status.enabled === true;
+  // TikTok's, Reddit's and X's switches, and whether the browser is signed in
+  // to each one that is on.
+  const sitesOn = {};
+  const sitesSignedIn = {};
+  for (const site of LENT_FIRST) {
+    sitesOn[site] = await isOn(site);
+    sitesSignedIn[site] =
+      lending && sitesOn[site] && hostKeeps(result.status, site) ? await isSignedIn(site) : false;
+  }
   return {
     result,
     signedIn: lending && !linkOff ? await isSignedIn('youtube') : false,
     linkOff,
-    tiktokOn,
-    tiktokSignedIn:
-      lending && tiktokOn && hostKeeps(result.status, 'tiktok') ? await isSignedIn('tiktok') : false,
+    tiktokOn: sitesOn.tiktok,
+    tiktokSignedIn: sitesSignedIn.tiktok,
+    sitesOn,
+    sitesSignedIn,
     otherOn: await isOtherOn(),
   };
 }
@@ -873,7 +900,12 @@ async function status() {
     // An app put back to a version that keeps YouTube's session alone cannot
     // take TikTok's. Its switch goes off now, as the first push it refused
     // would turn it, rather than stay drawn on over a session nobody keeps.
-    if (!hostKeeps(result.status, 'tiktok') && (await isTiktokOn())) await setTiktokOn(false);
+    for (const site of LENT_FIRST) {
+      if ((!hostKeeps(result.status, site) || removedInApp(result.status, site)) && (await isOn(site))) {
+        await setOn(site, false);
+      }
+    }
+    if (removedInApp(result.status, 'youtube') && !(await isOff())) await setOff(true);
     if (!hostKeeps(result.status, OTHER) && (await isOtherOn())) await setOtherOn(false);
     const on = {};
     for (const site of SWITCHES) on[site] = await isOn(site);
@@ -896,6 +928,8 @@ async function status() {
       const held = {
         youtube: result.status.session,
         tiktok: result.status.tiktokSession,
+        reddit: result.status.redditSession,
+        x: result.status.xSession,
         [OTHER]: result.status.otherSession,
       };
       for (const site of SWITCHES) {
@@ -932,10 +966,11 @@ async function connectYouTube() {
   const claimed = await callHost({ type: 'claim', ...(await peer()) });
   if (!claimed.ok) return linkReply(claimed);
   if (!wasBound) {
-    await setTiktokOn(false);
+    for (const site of LENT_FIRST) await setOn(site, false);
     await setOtherOn(false);
   }
-  const pushed = await push('youtube');
+  // Pressed here: a session removed in the app is the user's to lend again.
+  const pushed = await push('youtube', { resume: true });
   return linkReply(pushed.ok ? pushed : claimed);
 }
 
@@ -976,7 +1011,8 @@ async function connectSite(site) {
   // Turning the other sites' switch on sends nothing: there is no site yet.
   // Its cookies are read when İndir is pressed, for the page it is pressed on.
   if (site === OTHER) return linkReply(answer);
-  const pushed = await push(site);
+  // Pressed here: a session removed in the app is the user's to lend again.
+  const pushed = await push(site, { resume: true });
   return linkReply(pushed.ok ? pushed : answer);
 }
 
@@ -1105,9 +1141,10 @@ async function withPlaylists(fields, tabId) {
 // By the address the app will download, not the page's, because that is what
 // the app picks a session by: a TikTok post embedded elsewhere is not lent one.
 async function lendFor(url) {
-  if (!onTikTok(url) || (await storedLink()) !== 'bound' || !(await isTiktokOn())) return;
+  const site = siteOfUrl(url);
+  if (!LENT_FIRST.includes(site) || (await storedLink()) !== 'bound' || !(await isOn(site))) return;
   try {
-    await push('tiktok');
+    await push(site);
   } catch {
     // Cookies that cannot be read this time are what the stored copy is for.
   }
@@ -1609,7 +1646,7 @@ chrome.runtime.onInstalled.addListener((details) => {
 // switches.
 async function retireSessions() {
   if ((await storedLink()) === 'bound') await callHost({ type: 'forget', ...(await peer()) });
-  await chrome.storage.local.remove([OFF_KEY, TIKTOK_KEY, OTHER_KEY, LINK_KEY]).catch(() => {});
+  await chrome.storage.local.remove([OFF_KEY, ...Object.values(SITE_KEYS), OTHER_KEY, LINK_KEY]).catch(() => {});
 }
 
 // <full>

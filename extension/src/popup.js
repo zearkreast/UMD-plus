@@ -20,7 +20,7 @@
 import { NOTICES, detailMeta, firstMeta, problemOf } from './describe.js';
 import { displayHost, isHttpUrl, protectedService, unlisted } from './media.js';
 // <full>
-import { onTikTok, onYouTube } from './sessions.js';
+import { LENT_FIRST, onSite, onYouTube } from './sessions.js';
 // </full>
 
 const t = (key) => chrome.i18n.getMessage(key);
@@ -46,7 +46,8 @@ let tabId = null;
 // switch that is on keeps working everywhere, and the site is where to go to
 // turn it off. The other sites' switch is always in view.
 let onYouTubeTab = false;
-let onTikTokTab = false;
+// The sites of LENT_FIRST whose own page this popup opened over.
+const onSiteTab = {};
 // </full>
 
 function showProblem(next) {
@@ -378,34 +379,41 @@ function renderLink(reply) {
 // line names another profile's binding whatever the switch says, because
 // turning it on here takes that binding over, and the app then deletes every
 // session the other profile lent -- worth knowing before the press, not after.
-function renderTiktok(reply) {
+//
+// Reddit's and X's are drawn the same way. Each row shows on its own site's
+// pages, and on any page while its switch is on, so it can be turned off there.
+function renderSite(site, reply) {
   const result = reply?.result;
   const status = result?.ok ? result.status : null;
-  const turnedOn = reply?.tiktokOn === true;
-  el('tiktokRow').hidden = !onTikTokTab;
+  const turnedOn = reply?.sitesOn?.[site] === true;
+  el(`${site}Row`).hidden = !onSiteTab[site] && !turnedOn;
   let on = false;
   let usable = true;
-  let key = 'tiktokOffHint';
+  let key = `${site}OffHint`;
 
   if (!status) {
     usable = false;
   } else if (!status.enabled) {
     usable = false;
     key = 'linkDisabled';
-  } else if (!Array.isArray(status.sites) || !status.sites.includes('tiktok')) {
+  } else if (!Array.isArray(status.sites) || !status.sites.includes(site)) {
     usable = false;
     key = 'noticeUpdate';
   } else if (!status.bound) {
-    key = status.boundBrowser ? 'linkOther' : 'tiktokOffHint';
+    key = status.boundBrowser ? 'linkOther' : `${site}OffHint`;
   } else if (turnedOn) {
     on = true;
-    key = !reply.tiktokSignedIn ? 'tiktokSignedOut' : status.tiktokSession === 'fresh' ? 'tiktokOn' : 'linkStale';
+    key = !reply.sitesSignedIn?.[site]
+      ? `${site}SignedOut`
+      : status[`${site}Session`] === 'fresh'
+        ? `${site}On`
+        : 'linkStale';
   }
 
-  const toggle = el('tiktokSwitch');
+  const toggle = el(`${site}Switch`);
   toggle.setAttribute('aria-checked', String(on));
   toggle.disabled = !usable;
-  el('tiktokLine').textContent = t(key);
+  el(`${site}Line`).textContent = t(key);
 }
 
 // The other sites' switch, drawn as TikTok's is: it needs an app that keeps
@@ -445,7 +453,7 @@ function renderOther(reply) {
 // others -- a claim empties every jar -- so all are drawn from each one.
 function renderSessions(reply) {
   renderLink(reply);
-  renderTiktok(reply);
+  for (const site of LENT_FIRST) renderSite(site, reply);
   renderOther(reply);
 }
 // </full>
@@ -468,7 +476,13 @@ async function checkApp() {
 }
 
 // <full>
-const SWITCHES = { youtube: 'linkSwitch', tiktok: 'tiktokSwitch', other: 'otherSwitch' };
+const SWITCHES = {
+  youtube: 'linkSwitch',
+  tiktok: 'tiktokSwitch',
+  reddit: 'redditSwitch',
+  x: 'xSwitch',
+  other: 'otherSwitch',
+};
 
 for (const [site, id] of Object.entries(SWITCHES)) {
   el(id).addEventListener('click', async () => {
@@ -535,8 +549,10 @@ async function start() {
   // Shown before the app answers, so the card does not grow under the pointer.
   onYouTubeTab = onYouTube(tab?.url);
   el('youtubeRow').hidden = !onYouTubeTab;
-  onTikTokTab = onTikTok(tab?.url);
-  el('tiktokRow').hidden = !onTikTokTab;
+  for (const site of LENT_FIRST) {
+    onSiteTab[site] = onSite(site, tab?.url);
+    el(`${site}Row`).hidden = !onSiteTab[site];
+  }
   // </full>
 
   void checkApp();

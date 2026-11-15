@@ -31,6 +31,8 @@ function status(patch: Partial<BridgeStatus> = {}): BridgeStatus {
     session: 'none',
     tiktokSession: 'none',
     tiktokLastPushAt: null,
+    redditSession: 'none',
+    xSession: 'none',
     otherSession: 'none',
     otherDomain: null,
     hostPath: null,
@@ -117,5 +119,12 @@ describe('lastRefreshed', () => {
     expect(lastRefreshed(status({ lastPushAt: 300, tiktokLastPushAt: 200 }))).toBe(300);
     expect(lastRefreshed(status({ tiktokLastPushAt: 200 }))).toBe(200);
     expect(lastRefreshed(status())).toBeNull();
+  });
+});
+
+describe('a Reddit or X session alone', () => {
+  test("is a working connection, as TikTok's is", () => {
+    expect(phaseOf(status({ connected: true, redditSession: 'fresh' }))).toBe('connected');
+    expect(phaseOf(status({ connected: true, xSession: 'stale' }))).toBe('quiet');
   });
 });

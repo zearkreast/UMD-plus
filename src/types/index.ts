@@ -860,6 +860,9 @@ export interface DiagnosticsSnapshot {
  */
 export type BridgeSessionState = 'none' | 'fresh' | 'stale';
 
+/** A site whose browser session the app can keep. */
+export type BridgeSite = 'youtube' | 'tiktok' | 'reddit' | 'x' | 'other';
+
 /**
  * Everything the app knows about the browser link without decrypting anything.
  * Nothing here describes a cookie -- see the header of `bridge/protocol.rs`.
@@ -882,6 +885,8 @@ export interface BridgeStatus {
   session: BridgeSessionState;
   /** TikTok's, lent by the extension's own switch for it. */
   tiktokSession: BridgeSessionState;
+  redditSession: BridgeSessionState;
+  xSession: BridgeSessionState;
   /** Seconds since the epoch, as `lastPushAt`. */
   tiktokLastPushAt: number | null;
   /**

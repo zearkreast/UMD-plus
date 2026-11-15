@@ -804,6 +804,9 @@ pub struct BridgeStatus {
     /// above stays YouTube's alone.
     pub tiktok_session: crate::bridge::SessionState,
     pub tiktok_last_push_at: Option<i64>,
+    /// Reddit's and X's, lent by switches of their own as TikTok's is.
+    pub reddit_session: crate::bridge::SessionState,
+    pub x_session: crate::bridge::SessionState,
     /// The one other site İndir last lent a sign-in for: `fresh` for an hour
     /// after the press, `none` otherwise.
     pub other_session: crate::bridge::SessionState,

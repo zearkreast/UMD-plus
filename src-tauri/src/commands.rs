@@ -219,6 +219,18 @@ pub fn bridge_disconnect(app: AppHandle, state: State<'_, AppState>) -> AppResul
     ))
 }
 
+/// Remove one site's stored session, keeping the browser connected.
+#[tauri::command]
+pub fn bridge_forget_session(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    site: bridge::Site,
+) -> AppResult<BridgeStatus> {
+    bridge::forget_session(site)?;
+    let _ = app.emit(EVENT_BRIDGE_CHANGED, ());
+    Ok(bridge::status(&state.settings(), &app.package_info().version.to_string()))
+}
+
 /// A support paste. Carries cookie names but never values: a jar without `SID`
 /// is a signed-out jar, and that distinction is most of field diagnosis.
 #[tauri::command]

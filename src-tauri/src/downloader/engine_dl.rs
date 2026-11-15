@@ -83,7 +83,8 @@ pub async fn run(
     control: Arc<TaskControl>,
     on_progress: &mut (dyn FnMut(ProgressSample) + Send),
 ) -> AppResult<u64> {
-    let other = bridge::other_lease(settings, options.url, options.page_url);
+    let other = bridge::first_lease(settings, options.url, options.page_url);
+    let own_session = other.as_ref().is_some_and(bridge::CookieLease::is_own_site);
     let other_jar = other
         .as_ref()
         .map(|lease| lease.path().to_string_lossy().into_owned());
@@ -97,6 +98,8 @@ pub async fn run(
     drop(other);
     let refusal = match first {
         Ok(size) => return Ok(size),
+        // The site's own session was behind this attempt already.
+        Err(err) if own_session => return Err(AppError::after_session(err)),
         Err(err) => err,
     };
 

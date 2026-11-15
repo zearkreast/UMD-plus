@@ -13,6 +13,7 @@ import type {
   ConvertStatus,
   DiagnosticsSnapshot,
   DownloadRequest,
+  BridgeSite,
   Subscription,
   SubscriptionBackfill,
   DownloadTask,
@@ -100,6 +101,9 @@ export const checkToolUpdate = (tool: ToolKind) =>
 export const bridgeStatus = () => invoke<BridgeStatus>('bridge_status');
 export const bridgeRepair = () => invoke<BridgeStatus>('bridge_repair');
 export const bridgeDisconnect = () => invoke<BridgeStatus>('bridge_disconnect');
+/** Remove one site's stored session; the browser stays connected. */
+export const bridgeForgetSession = (site: BridgeSite) =>
+  invoke<BridgeStatus>('bridge_forget_session', { site });
 /** A support paste. Carries cookie names, never their values. */
 export const bridgeDiagnostics = () => invoke<string>('bridge_diagnostics');
 /**

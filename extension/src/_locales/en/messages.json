@@ -125,6 +125,38 @@
     "message": "For age-restricted posts",
     "description": "Under the TikTok switch while it is off: what turning it on is for."
   },
+  "redditTitle": {
+    "message": "Reddit session",
+    "description": "Title of the switch that lends this profile's Reddit sign-in to the app. Shown on Reddit pages, and on any page while it is on."
+  },
+  "redditOn": {
+    "message": "Downloads use your Reddit sign-in",
+    "description": "Under the Reddit switch while it is on and the app holds a current Reddit sign-in."
+  },
+  "redditSignedOut": {
+    "message": "Not signed in to Reddit",
+    "description": "Under the Reddit switch while it is on but the browser is not signed in to Reddit."
+  },
+  "redditOffHint": {
+    "message": "For posts only your account can see",
+    "description": "Under the Reddit switch while it is off: what turning it on is for."
+  },
+  "xTitle": {
+    "message": "X session",
+    "description": "Title of the switch that lends this profile's X (Twitter) sign-in to the app. Shown on X pages, and on any page while it is on."
+  },
+  "xOn": {
+    "message": "Downloads use your X sign-in",
+    "description": "Under the X switch while it is on and the app holds a current X sign-in."
+  },
+  "xSignedOut": {
+    "message": "Not signed in to X",
+    "description": "Under the X switch while it is on but the browser is not signed in to X."
+  },
+  "xOffHint": {
+    "message": "For posts only your account can see",
+    "description": "Under the X switch while it is off: what turning it on is for."
+  },
   "otherTitle": {
     "message": "Session on other sites",
     "description": "Title of the switch that lends the sign-in of the site Get is pressed on -- any site but YouTube and TikTok -- to the app, for that download. Shown on such sites' pages, and on any page while it is on."
@@ -134,7 +166,7 @@
     "description": "Under the Session on other sites switch while it is on: pressing Get on a page hands the app that one site's sign-in, for that download, and nothing else."
   },
   "otherOffHint": {
-    "message": "For sign-in-only posts on X, Instagram",
+    "message": "For sign-in-only posts on Instagram, Facebook",
     "description": "Under the Session on other sites switch while it is off: what turning it on is for. The names are examples of sites, left untranslated."
   },
   "rowSignIn": {

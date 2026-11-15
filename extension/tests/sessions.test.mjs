@@ -19,6 +19,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
+  LENT_FIRST,
   OTHER,
   SITES,
   onTikTok,
@@ -205,13 +206,11 @@ describe('sessions', () => {
     }
   });
 
-  test("the other sites' switch is for any web page but YouTube's and TikTok's", () => {
+  test("the other sites' switch is for any web page but those with a switch of their own", () => {
     for (const [url, domain] of [
       ['https://www.instagram.com/p/DQ3zR6-DPGm/', 'instagram.com'],
-      ['https://x.com/someone/status/1', 'x.com'],
       ['https://m.facebook.com/watch/?v=1', 'facebook.com'],
       ['https://vimeo.com/76979871', 'vimeo.com'],
-      ['https://old.reddit.com/r/videos/', 'reddit.com'],
       ['https://www.bbc.co.uk/iplayer', 'bbc.co.uk'],
       ['http://www.trendyol.com.tr/', 'trendyol.com.tr'],
     ]) {
@@ -226,6 +225,10 @@ describe('sessions', () => {
       'https://www.google.com.tr/search?q=a',
       'https://www.tiktok.com/@a/video/1',
       'https://v16.tiktokcdn.com/a.mp4',
+      'https://x.com/someone/status/1',
+      'https://twitter.com/someone/status/1',
+      'https://old.reddit.com/r/videos/',
+      'https://v.redd.it/abc/DASH_720.mp4',
       'http://localhost:1420/',
       'http://127.0.0.1/video.mp4',
       'http://[::1]/video.mp4',
@@ -285,5 +288,30 @@ describe('messages', () => {
         assert.ok(Object.hasOwn(en, key), `${page}: ${key}`);
       }
     }
+  });
+});
+
+describe('Reddit and X', () => {
+  test('are known by every name they answer on', () => {
+    assert.equal(siteOfUrl('https://www.reddit.com/r/a/comments/1/x/'), 'reddit');
+    assert.equal(siteOfUrl('https://redd.it/abc'), 'reddit');
+    assert.equal(siteOfUrl('https://x.com/a/status/1'), 'x');
+    assert.equal(siteOfUrl('https://mobile.twitter.com/a/status/1'), 'x');
+    assert.equal(siteOfUrl('https://twitter.com.example/a'), null);
+    assert.equal(siteOfDomain('.twitter.com'), 'x');
+    assert.deepEqual([...SITES.x.domains], ['x.com', 'twitter.com']);
+  });
+
+  test('are signed in only with their sign-in cookie', () => {
+    assert.equal(signedIn('reddit', [cookie('token_v2'), cookie('loid')]), false);
+    assert.equal(signedIn('reddit', [cookie('reddit_session')]), true);
+    assert.equal(signedIn('x', [cookie('guest_id'), cookie('ct0')]), false);
+    assert.equal(signedIn('x', [cookie('auth_token')]), true);
+  });
+
+  test('lend their session first, as TikTok does, and YouTube does not', () => {
+    assert.deepEqual([...LENT_FIRST], ['tiktok', 'reddit', 'x']);
+    const rust = read('src-tauri', 'src', 'bridge', 'protocol.rs');
+    assert.match(rust, /matches!\(self, Site::Tiktok \| Site::Reddit \| Site::X\)/);
   });
 });

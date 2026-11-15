@@ -7,7 +7,7 @@
 
 import { parseHttp } from './media.js';
 
-// For each site: the domain its cookies are read from, the cookies that carry
+// For each site: the domains its cookies are read from, the cookies that carry
 // a sign-in, and which changes are worth sending the jar again for.
 //
 // `session` is there because a jar can be full of cookies and still belong to
@@ -24,16 +24,36 @@ export const SITES = Object.freeze({
   // YouTube keeps its own copies of the SID family on youtube.com, which is the
   // only domain read for it.
   youtube: Object.freeze({
-    domain: 'youtube.com',
+    domains: Object.freeze(['youtube.com']),
     session: new Set(['SID', '__Secure-1PSID', '__Secure-3PSID', 'LOGIN_INFO']),
     watch: null,
   }),
   tiktok: Object.freeze({
-    domain: 'tiktok.com',
+    domains: Object.freeze(['tiktok.com']),
     session: new Set(['sessionid', 'sessionid_ss', 'sid_tt']),
     watch: new Set(['sessionid', 'sessionid_ss', 'sid_tt', 'sid_guard', 'uid_tt']),
   }),
+  // Reddit gives a signed-out visitor a token of its own, so only the sign-in
+  // cookie says that someone is signed in.
+  reddit: Object.freeze({
+    domains: Object.freeze(['reddit.com']),
+    session: new Set(['reddit_session']),
+    watch: new Set(['reddit_session']),
+  }),
+  // X answers on both of its names and keeps a sign-in on each.
+  x: Object.freeze({
+    domains: Object.freeze(['x.com', 'twitter.com']),
+    session: new Set(['auth_token']),
+    watch: new Set(['auth_token', 'twid']),
+  }),
 });
+
+/**
+ * The sites whose switch lends their session to every download of theirs from
+ * the first attempt, rather than keeping it for a refusal as YouTube's does.
+ * `Site::lent_first` in src-tauri/src/bridge/protocol.rs is the same list.
+ */
+export const LENT_FIRST = Object.freeze(['tiktok', 'reddit', 'x']);
 
 /**
  * The site a cookie domain -- or a host -- belongs to, or null for any other.
@@ -42,9 +62,12 @@ export const SITES = Object.freeze({
  */
 export function siteOfDomain(domain) {
   const host = String(domain ?? '').replace(/^\./, '').toLowerCase();
-  for (const [site, { domain: own }] of Object.entries(SITES)) {
-    if (host === own || host.endsWith(`.${own}`)) return site;
+  for (const [site, { domains }] of Object.entries(SITES)) {
+    if (domains.some((own) => host === own || host.endsWith(`.${own}`))) return site;
   }
+  // Reddit's short and media addresses are Reddit's, for picking a session by
+  // address; its cookies are never read from there.
+  if (host === 'redd.it' || host.endsWith('.redd.it')) return 'reddit';
   return null;
 }
 
@@ -94,6 +117,11 @@ export function onYouTube(raw) {
 /** Whether a page is TikTok's own, where the popup offers TikTok's switch. */
 export function onTikTok(raw) {
   return siteOfUrl(raw) === 'tiktok';
+}
+
+/** Whether a page is `site`'s own, where the popup offers that site's switch. */
+export function onSite(site, raw) {
+  return site === 'youtube' ? onYouTube(raw) : siteOfUrl(raw) === site;
 }
 
 // The third switch, "Session on other sites", is not a site of SITES: it is a
@@ -150,6 +178,11 @@ const OWN_SWITCH = new Set([
   'tiktok',
   'tiktokv',
   'tiktokcdn',
+  'reddit',
+  'redd',
+  'x',
+  'twitter',
+  'twimg',
 ]);
 
 /**
