@@ -590,9 +590,9 @@ export const tr: Record<TranslationKey, string> = {
 
   'about.privacyTitle': 'İndirmelerin cihazında kalır.',
   'about.privacyBody':
-    "Hesap yok, reklam yok, analitik yok. Bağlantılar bu makinede çalışan araçlarla çözümlenir. İstekler yalnızca medya kaynağının kendisine, güncellemeleri denetlemek ve bu araçları indirmek için de GitHub'a gider.",
+    "Hesap yok, reklam yok, analitik yok. Bağlantılar bu makinede çalışan araçlarla çözümlenir. İstekler yalnızca medya kaynağının kendisine, güncellemeleri denetlemek ve bu araçları indirmek için de GitHub'a gider. Sponsor atlamayı açarsan YouTube videolarının kimliği SponsorBlock'a da sorulur.",
   'about.privacyBodyMobile':
-    "Hesap yok, reklam yok, analitik yok. Bağlantılar telefonunda çözümlenir. İstekler yalnızca medya kaynağına, güncellemeleri denetlemek için GitHub'a ve telefonunun DNS'i bir siteyi bulamazsa adresini sormak için herkese açık bir DNS çözümleyicisine (Cloudflare veya Google) gider.",
+    "Hesap yok, reklam yok, analitik yok. Bağlantılar telefonunda çözümlenir. İstekler yalnızca medya kaynağına, güncellemeleri denetlemek için GitHub'a ve telefonunun DNS'i bir siteyi bulamazsa adresini sormak için herkese açık bir DNS çözümleyicisine (Cloudflare veya Google) gider. Sponsor atlamayı açarsan YouTube videolarının kimliği SponsorBlock'a da sorulur.",
   'about.licenses': 'Açık kaynak kütüphaneler',
   'about.externalTools': 'Harici araçlar',
   'about.system': 'Sistem',

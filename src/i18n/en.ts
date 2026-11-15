@@ -595,9 +595,9 @@ export const en = {
 
   'about.privacyTitle': 'Your downloads stay on your device.',
   'about.privacyBody':
-    'No account, no ads, no analytics. Links are resolved by tools running on this machine. Requests go only to the media source itself, and to GitHub to check for updates and to fetch those tools.',
+    'No account, no ads, no analytics. Links are resolved by tools running on this machine. Requests go only to the media source itself, and to GitHub to check for updates and to fetch those tools. With sponsor skipping on, YouTube video ids are also sent to SponsorBlock.',
   'about.privacyBodyMobile':
-    "No account, no ads, no analytics. Links are resolved on your phone. Requests go only to the media source, to GitHub to check for updates and, if your phone's DNS can't find a site, to a public DNS resolver (Cloudflare or Google) for its address.",
+    "No account, no ads, no analytics. Links are resolved on your phone. Requests go only to the media source, to GitHub to check for updates and, if your phone's DNS can't find a site, to a public DNS resolver (Cloudflare or Google) for its address. With sponsor skipping on, YouTube video ids are also sent to SponsorBlock.",
   'about.licenses': 'Open source libraries',
   'about.externalTools': 'External tools',
   'about.system': 'System',
