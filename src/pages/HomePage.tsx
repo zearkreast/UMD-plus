@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'motion/react';
 import { readText } from '@tauri-apps/plugin-clipboard-manager';
-import { CircleCheck, Clock, Link2, ListVideo, RotateCcw, type LucideIcon } from 'lucide-react';
+import { Bell, CircleCheck, Clock, Link2, ListVideo, RotateCcw, type LucideIcon } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { AnalyzingCard } from '@/components/home/AnalyzingCard';
@@ -8,6 +8,7 @@ import { BatchLinks } from '@/components/home/BatchLinks';
 import { ClipboardSuggestion } from '@/components/home/ClipboardSuggestion';
 import { DownloadOptionsPanel } from '@/components/home/DownloadOptionsPanel';
 import { ErrorCard } from '@/components/home/ErrorCard';
+import { FollowDialog } from '@/components/home/FollowDialog';
 import { GalleryPicker } from '@/components/home/GalleryPicker';
 import { Hero } from '@/components/home/Hero';
 import { MediaPreviewCard } from '@/components/home/MediaPreviewCard';
@@ -76,6 +77,8 @@ interface HomePageProps {
   /** The latest request a shortcut made of Home; see `HomeRequest`. */
   request?: HomeRequest | null;
   onGoToDownloads: () => void;
+  /** The followed lists, after following one. */
+  onOpenSubscriptions: () => void;
   /** Settings, opened at `section` when there is one to point at. */
   onOpenSettings: (section?: SettingsSection) => void;
   inputRef: React.RefObject<UrlInputHandle | null>;
@@ -85,6 +88,7 @@ export function HomePage({
   settings,
   request,
   onGoToDownloads,
+  onOpenSubscriptions,
   onOpenSettings,
   inputRef,
 }: HomePageProps) {
@@ -112,6 +116,8 @@ export function HomePage({
   const { install: installEngine, error: engineInstallError } = useToolInstall('engine');
 
   const [submitting, setSubmitting] = useState(false);
+  // The list on screen being followed: its dialog is open.
+  const [following, setFollowing] = useState(false);
   const downloadButtonRef = useRef<HTMLButtonElement | null>(null);
   const [dragging, setDragging] = useState(false);
   // Why the last press of Download did not queue anything.
@@ -634,6 +640,33 @@ export function HomePage({
                 >
                   {t('preview.inList')}
                 </NoteRow>
+              )}
+
+              {metadata.listing && (
+                <NoteRow
+                  icon={Bell}
+                  action={
+                    <Button variant="secondary" size="sm" icon={<Bell size={14} />} onClick={() => setFollowing(true)}>
+                      {t('follow.button')}
+                    </Button>
+                  }
+                >
+                  {t('follow.note')}
+                </NoteRow>
+              )}
+              {metadata.listing && (
+                <FollowDialog
+                  open={following}
+                  onClose={() => setFollowing(false)}
+                  request={following ? buildRequest() : null}
+                  title={metadata.title}
+                  // What was read of it, which is what following can queue.
+                  count={tracks.length}
+                  onFollowed={() => {
+                    setFollowing(false);
+                    onOpenSubscriptions();
+                  }}
+                />
               )}
 
               {tracks.length > 0 && (

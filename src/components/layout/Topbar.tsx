@@ -14,6 +14,7 @@ const TITLES: Record<Route, TranslationKey> = {
   convert: 'convert.title',
   editor: 'editor.title',
   history: 'history.title',
+  subscriptions: 'subs.title',
   settings: 'settings.title',
   about: 'nav.about',
 };

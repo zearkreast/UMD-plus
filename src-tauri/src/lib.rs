@@ -23,6 +23,7 @@ pub mod paths;
 pub mod process;
 pub mod providers;
 pub mod settings;
+pub mod subscriptions;
 pub mod tools;
 #[cfg(desktop)]
 pub mod tray;
@@ -105,6 +106,17 @@ pub fn run() {
             // ask for again would burn a CPU at sign-in.
             let converter = ConvertManager::new(handle.clone(), Arc::clone(&settings));
             converter.spawn_scheduler();
+
+            // Followed lists are read while the app is open or in the tray,
+            // starting with whatever came due while it was closed.
+            let following = subscriptions::Subscriptions::new(
+                handle.clone(),
+                Arc::clone(&database),
+                Arc::clone(&settings),
+                Arc::clone(&queue),
+            );
+            following.spawn();
+            app.manage(following);
 
             // An export is one file at a time, started from a screen the user
             // is looking at, so there is nothing to schedule and nothing to
@@ -285,6 +297,11 @@ pub fn run() {
             commands::clear_finished_conversions,
             commands::list_history,
             commands::history_platforms,
+            subscriptions::list_subscriptions,
+            subscriptions::add_subscription,
+            subscriptions::update_subscription,
+            subscriptions::remove_subscription,
+            subscriptions::check_subscriptions,
             commands::count_history,
             commands::delete_history_entry,
             commands::clear_history,

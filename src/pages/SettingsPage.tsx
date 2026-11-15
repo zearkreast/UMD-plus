@@ -729,6 +729,36 @@ function DownloadsSection({ settings, update }: { settings: Settings; update: Up
           }
         />
       </SettingGroup>
+
+      <SettingGroup title={t('settings.subscriptions')}>
+        <SettingRow
+          title={t('settings.subscriptionInterval')}
+          description={t(IS_MOBILE ? 'settings.subscriptionIntervalHintMobile' : 'settings.subscriptionIntervalHint')}
+          stacked={IS_MOBILE}
+          control={
+            <Dropdown
+              className={IS_MOBILE ? 'w-full' : 'w-[170px]'}
+              value={String(settings.subscriptionIntervalHours ?? 6)}
+              options={[1, 3, 6, 12, 24].map((hours) => ({
+                value: String(hours),
+                label: t('settings.subscriptionEvery', { n: hours }),
+              }))}
+              onChange={(value) => void update({ subscriptionIntervalHours: Number(value) })}
+            />
+          }
+        />
+        <ToggleRow
+          title={t('settings.subscriptionAuto')}
+          description={t('settings.subscriptionAutoHint')}
+          checked={settings.subscriptionAutoDownload !== false}
+          onChange={(checked) => void update({ subscriptionAutoDownload: checked })}
+        />
+        <ToggleRow
+          title={t('settings.subscriptionNotify')}
+          checked={settings.subscriptionNotify !== false}
+          onChange={(checked) => void update({ subscriptionNotify: checked })}
+        />
+      </SettingGroup>
     </>
   );
 }

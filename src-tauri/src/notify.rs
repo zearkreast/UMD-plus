@@ -49,6 +49,15 @@ pub fn queue_ending(app: &AppHandle, settings: &Settings, after: AfterQueue) {
         .show();
 }
 
+/// New items of a followed list went into the queue.
+pub fn subscription_found(app: &AppHandle, settings: &Settings, title: &str, count: usize) {
+    if !settings.notifications_enabled || !settings.subscription_notify {
+        return;
+    }
+    let body = if count == 1 { "1 new video was queued.".to_string() } else { format!("{count} new videos were queued.") };
+    let _ = app.notification().builder().title(title).body(body).show();
+}
+
 pub fn download_failed(app: &AppHandle, settings: &Settings, title: &str, error: &AppErrorInfo) {
     if !settings.notifications_enabled || !settings.notify_on_error {
         return;
