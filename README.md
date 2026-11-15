@@ -114,17 +114,22 @@ add-on from `about:debugging`, until Firefox closes.
 **Downloading**
 - Shows what a link really offers (title, creator, length and the actual qualities) and downloads the one you pick. A 720p video never shows a 4K option.
 - Whole **playlists and channels**: they open in seconds, you tick the videos, and they land in a folder named after the list.
+- **Subscriptions** to channels and lists: new videos are checked for every few hours while the app runs, and queued with the options you chose.
+- **Several links at once**: paste them together and queue them all, or send videos from the browser straight to the queue.
 - **Photos** too: Instagram posts and carousels, X, TikTok photo posts, Reddit galleries and Pinterest pins, at full size.
 - **Fast**: large files are split over several connections, and the queue can be paused, resumed and retried without losing progress.
 - **Subtitles** beside the video or inside it, and the file's **title, creator, chapters and cover** written into it.
+- **Sponsored parts cut out** of YouTube videos using SponsorBlock, and a video **split by its chapters** into separate files (both optional).
+- **Folders from the file name**: `{platform}/{creator}/{title}` sorts downloads by site and channel.
 
 **Staying out of the way**
 - A **speed limit** for all downloads together, and **scheduled hours** for the queue.
+- Waits out a **dropped connection** and carries on when it is back, instead of failing. On the phone, can wait for **Wi-Fi**.
 - When the queue runs out, the app can close, or the computer can sleep or shut down, after a countdown you can call off.
 - Points out a link you have already downloaded.
 
 **Working with files**
-- **Converts** video, sound and pictures between the common formats, without re-encoding when it does not have to.
+- **Converts** video, sound and pictures between the common formats, without re-encoding when it does not have to, or a video to **no more than a size** for a messaging app.
 - **Cuts and joins** clips in the editor, against a waveform and a strip of frames.
 
 **From the browser** (Windows)
@@ -174,7 +179,9 @@ No account, no ads, no analytics, no telemetry. Links are read by tools
 running on your computer, and the app talks only to the site you are
 downloading from and to GitHub, to fetch its tools and to check for updates.
 When a phone's own DNS cannot find a site, the app asks Cloudflare's or
-Google's public resolver for that one host name.
+Google's public resolver for that one host name. With sponsor skipping turned
+on (it is off until you turn it on), the id of each YouTube video downloaded
+is sent to [SponsorBlock](https://sponsor.ajay.app) to ask which parts to cut.
 
 The browser extension sends nothing off your computer. What it reads is listed
 in [`extension/PRIVACY.md`](extension/PRIVACY.md).
