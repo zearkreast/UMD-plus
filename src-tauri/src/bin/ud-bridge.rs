@@ -486,6 +486,7 @@ fn status(state: &LinkState, peer: &Peer) -> HostStatus {
             None
         },
         other_session,
+        extension_on_disk: universal_downloader_lib::extension_copy::version_on_disk(),
     }
 }
 

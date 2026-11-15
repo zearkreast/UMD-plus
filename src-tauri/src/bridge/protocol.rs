@@ -623,6 +623,11 @@ pub struct HostStatus {
     /// unchanged.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub other_domain: Option<String>,
+    /// The version of the unpacked extension the app keeps in its data
+    /// folder. An unpacked copy running an older one reloads itself, which
+    /// picks the new files up when it was loaded from there.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub extension_on_disk: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -736,6 +741,7 @@ mod tests {
             forgotten: vec![],
             other_session: SessionState::None,
             other_domain: None,
+            extension_on_disk: None,
         }
     }
 
@@ -865,6 +871,13 @@ mod tests {
         let text = serde_json::to_value(&lending).unwrap();
         assert_eq!(text["otherSession"], "fresh");
         assert_eq!(text["otherDomain"], "instagram.com");
+
+        assert!(text.get("extensionOnDisk").is_none());
+        let kept = HostStatus {
+            extension_on_disk: Some("3.1.1".into()),
+            ..status()
+        };
+        assert_eq!(serde_json::to_value(&kept).unwrap()["extensionOnDisk"], "3.1.1");
 
         // A status from a host older than the list still reads, as one that
         // stores YouTube's session alone.

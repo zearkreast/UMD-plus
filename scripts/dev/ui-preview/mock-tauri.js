@@ -1062,6 +1062,11 @@
       return commands.bridge_status();
     },
     bridge_disconnect: () => commands.bridge_status(),
+    extension_folder: () => ({
+      path: 'C:\\Users\\you\\AppData\\Roaming\\UniversalDownloader\\extension',
+      version: '3.1.1',
+    }),
+    open_extension_dir: () => null,
     bridge_forget_session: ({ site }) => {
       bridge.forgotten = bridge.forgotten ?? new Set();
       bridge.forgotten.add(site);

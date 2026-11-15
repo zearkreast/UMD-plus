@@ -12,6 +12,7 @@ pub mod commands;
 pub mod db;
 pub mod downloader;
 pub mod error;
+pub mod extension_copy;
 pub mod filename;
 pub mod files;
 pub mod logging;
@@ -116,6 +117,21 @@ pub fn run() {
                 Arc::clone(&queue),
             );
             following.spawn();
+
+            // The unpacked extension in the data folder is brought up to this
+            // version, so a browser that loaded it from there is updated with
+            // the app.
+            #[cfg(not(target_os = "android"))]
+            tauri::async_runtime::spawn_blocking(|| match extension_copy::sync() {
+                Ok(synced) if synced.written + synced.removed > 0 => log_info!(
+                    "extension",
+                    "folder updated: {} written, {} removed",
+                    synced.written,
+                    synced.removed
+                ),
+                Ok(_) => {}
+                Err(err) => log_warn!("extension", "folder not updated: {err}"),
+            });
             app.manage(following);
 
             // An export is one file at a time, started from a screen the user
@@ -312,6 +328,8 @@ pub fn run() {
             commands::reveal_file,
             commands::share_file,
             commands::open_log_dir,
+            commands::extension_folder,
+            commands::open_extension_dir,
             commands::open_download_dir,
             commands::cache_stats,
             commands::clear_cache,

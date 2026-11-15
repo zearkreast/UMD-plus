@@ -228,6 +228,29 @@ pub async fn open_log_dir() -> AppResult<()> {
     }
 }
 
+/// The unpacked extension's folder, brought up to date before it is shown.
+/// It takes no path either.
+pub async fn open_extension_dir() -> AppResult<()> {
+    #[cfg(not(target_os = "android"))]
+    {
+        on_worker(|| {
+            crate::extension_copy::sync()?;
+            let dir = crate::extension_copy::dir()?;
+            #[cfg(windows)]
+            let _com = Com::sta();
+            settle(
+                tauri_plugin_opener::open_path(&dir, None::<&str>),
+                "the extension folder could not be shown",
+            )
+        })
+        .await
+    }
+    #[cfg(target_os = "android")]
+    {
+        Err(AppError::Other("the extension folder is only shown on the desktop".into()))
+    }
+}
+
 /// The folder downloads are saved to, for the Downloads screen's folder
 /// button. The caller names no path: it is the one in the settings, so this
 /// cannot be pointed anywhere else either. A folder that is not there yet -- a

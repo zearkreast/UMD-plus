@@ -507,6 +507,13 @@ export const en = {
     'The extension is not published yet. Until it is, load it in your browser from the app’s extension folder.',
   'settings.linkDisconnect': 'Disconnect',
   'settings.linkForget': 'Remove',
+  'settings.extensionFolder': 'Extension folder',
+  'settings.extensionFolderHint':
+    'In Chrome, Edge or Brave, open the extensions page, turn on Developer mode, press Load unpacked and choose this folder. The app updates the folder whenever it is updated, and the extension reloads itself.',
+  'settings.extensionFolderOpen': 'Open folder',
+  'settings.extensionFolderCopy': 'Copy the folder path',
+  'settings.extensionFolderVersion': 'Version in the folder: {version}',
+  'settings.extensionFolderFailed': 'The extension folder could not be opened',
   'settings.linkForgetSite': 'Remove the {site} session',
   'settings.linkForgetFailed': 'The session could not be removed',
   'settings.linkDisconnectFailed': 'Could not disconnect the browser',

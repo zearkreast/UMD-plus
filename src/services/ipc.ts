@@ -14,6 +14,7 @@ import type {
   DiagnosticsSnapshot,
   DownloadRequest,
   BridgeSite,
+  ExtensionFolder,
   Subscription,
   SubscriptionBackfill,
   DownloadTask,
@@ -104,6 +105,9 @@ export const bridgeDisconnect = () => invoke<BridgeStatus>('bridge_disconnect');
 /** Remove one site's stored session; the browser stays connected. */
 export const bridgeForgetSession = (site: BridgeSite) =>
   invoke<BridgeStatus>('bridge_forget_session', { site });
+/** The unpacked extension's folder, brought up to this version first. */
+export const extensionFolder = () => invoke<ExtensionFolder>('extension_folder');
+export const openExtensionDir = () => invoke<void>('open_extension_dir');
 /** A support paste. Carries cookie names, never their values. */
 export const bridgeDiagnostics = () => invoke<string>('bridge_diagnostics');
 /**

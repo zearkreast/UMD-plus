@@ -501,6 +501,13 @@ export const tr: Record<TranslationKey, string> = {
     'Uzantı henüz yayımlanmadı. O zamana kadar tarayıcına uygulamanın extension klasöründen yükleyebilirsin.',
   'settings.linkDisconnect': 'Bağlantıyı kes',
   'settings.linkForget': 'Kaldır',
+  'settings.extensionFolder': 'Uzantı klasörü',
+  'settings.extensionFolderHint':
+    "Chrome, Edge ya da Brave'de uzantılar sayfasını aç, Geliştirici modunu aç, Paketlenmemiş öğe yükle'ye bas ve bu klasörü seç. Uygulama her güncellendiğinde klasörü de günceller, uzantı da kendini yeniden yükler.",
+  'settings.extensionFolderOpen': 'Klasörü aç',
+  'settings.extensionFolderCopy': 'Klasör yolunu kopyala',
+  'settings.extensionFolderVersion': 'Klasördeki sürüm: {version}',
+  'settings.extensionFolderFailed': 'Uzantı klasörü açılamadı',
   'settings.linkForgetSite': '{site} oturumunu kaldır',
   'settings.linkForgetFailed': 'Oturum kaldırılamadı',
   'settings.linkDisconnectFailed': 'Tarayıcı bağlantısı kesilemedi',

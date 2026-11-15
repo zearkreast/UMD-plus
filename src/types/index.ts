@@ -867,6 +867,12 @@ export type BridgeSite = 'youtube' | 'tiktok' | 'reddit' | 'x' | 'other';
  * Everything the app knows about the browser link without decrypting anything.
  * Nothing here describes a cookie -- see the header of `bridge/protocol.rs`.
  */
+/** Where the app keeps the unpacked extension, and the version in it. */
+export interface ExtensionFolder {
+  path: string;
+  version: string | null;
+}
+
 export interface BridgeStatus {
   supported: boolean;
   /** Whether there is a published extension to send the user to. */
