@@ -124,9 +124,11 @@ or obfuscated.
 
 In `chrome.storage.local`, on your own machine: a random identifier for this
 browser profile (so the app can tell one Chrome profile from another), whether
-you turned the YouTube session off, whether you turned the TikTok session and
-Session on other sites on, and what the app last said about this profile's
-connection (connected, turned off in the app, or not connected).
+you turned the YouTube session off, whether you turned the TikTok, Reddit and X
+sessions and Session on other sites on, what the app last said about this
+profile's connection (connected, turned off in the app, or not connected), and,
+for a copy loaded unpacked, the last version number it reloaded itself for after
+the app updated its folder.
 
 In `chrome.storage.session`, in memory: the per-tab lists described above,
 and the element you picked, until you close it or the tab leaves that page.
@@ -271,10 +273,11 @@ okuyarak doğrulayabilirsiniz.
 
 Kendi makinenizdeki `chrome.storage.local` içinde: bu tarayıcı profili için
 rastgele bir tanımlayıcı (uygulama bir Chrome profilini diğerinden ayırabilsin
-diye), YouTube oturumunu kapatıp kapatmadığınız, TikTok oturumunu ve Diğer
-sitelerde oturum anahtarını açıp açmadığınız ve uygulamanın bu profilin
-bağlantısı hakkında en son ne dediği (bağlı, uygulamada kapalı ya da bağlı
-değil).
+diye), YouTube oturumunu kapatıp kapatmadığınız, TikTok, Reddit ve X
+oturumlarını ve Diğer sitelerde oturum anahtarını açıp açmadığınız, uygulamanın
+bu profilin bağlantısı hakkında en son ne dediği (bağlı, uygulamada kapalı ya da
+bağlı değil) ve paketlenmemiş yüklenen bir kopyada, uygulama klasörünü
+güncelledikten sonra kendini en son hangi sürüm için yeniden yüklediği.
 
 `chrome.storage.session` içinde, bellekte: yukarıda anlatılan sekme listeleri
 ve siz kapatana ya da sekme o sayfadan ayrılana kadar seçtiğiniz öğe.

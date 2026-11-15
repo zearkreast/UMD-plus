@@ -27,6 +27,7 @@ import {
   otherSiteOf,
   pushHead,
   registrableDomain,
+  reloadFor,
   signedIn,
   siteOfDomain,
   siteOfUrl,
@@ -313,5 +314,19 @@ describe('Reddit and X', () => {
     assert.deepEqual([...LENT_FIRST], ['tiktok', 'reddit', 'x']);
     const rust = read('src-tauri', 'src', 'bridge', 'protocol.rs');
     assert.match(rust, /matches!\(self, Site::Tiktok \| Site::Reddit \| Site::X\)/);
+  });
+});
+
+describe('reloading for an updated folder', () => {
+  test('reloads once for a version on disk it is not running', () => {
+    assert.equal(reloadFor('3.1.0', '3.1.1', undefined), '3.1.1');
+    assert.equal(reloadFor('3.1.0', '3.1.1', '3.1.1'), null, 'already tried, the folder is not this copy');
+    assert.equal(reloadFor('3.1.1', '3.1.1', '3.1.1'), null);
+  });
+
+  test('stays put without a folder to compare with', () => {
+    assert.equal(reloadFor('3.1.0', undefined, undefined), null);
+    assert.equal(reloadFor('3.1.0', '', undefined), null);
+    assert.equal(reloadFor('3.1.0', null, undefined), null);
   });
 });

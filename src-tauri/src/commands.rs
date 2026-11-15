@@ -860,6 +860,26 @@ pub async fn open_log_dir() -> AppResult<()> {
     crate::files::open_log_dir().await
 }
 
+/// Where the unpacked extension is kept and which version it holds, brought
+/// up to date first so the path shown is one that exists.
+#[tauri::command]
+pub async fn extension_folder() -> AppResult<crate::model::ExtensionFolder> {
+    tauri::async_runtime::spawn_blocking(|| -> AppResult<crate::model::ExtensionFolder> {
+        crate::extension_copy::sync()?;
+        Ok(crate::model::ExtensionFolder {
+            path: crate::extension_copy::dir()?.to_string_lossy().into_owned(),
+            version: crate::extension_copy::version_on_disk(),
+        })
+    })
+    .await
+    .map_err(|err| AppError::Other(format!("the extension folder could not be read: {err}")))?
+}
+
+#[tauri::command]
+pub async fn open_extension_dir() -> AppResult<()> {
+    crate::files::open_extension_dir().await
+}
+
 #[tauri::command]
 pub async fn open_download_dir(state: State<'_, AppState>) -> AppResult<()> {
     let dir = state.settings().download_dir;

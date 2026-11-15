@@ -1,9 +1,60 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 fn main() {
     embed_commit();
+    embed_extension();
     tauri_build::build()
+}
+
+/// List the browser extension's files for the app to carry, so it can keep an
+/// unpacked copy current in its data folder. The same files as the full build
+/// that `scripts/extension/pack.mjs --full` zips: everything in extension/src
+/// but a stray key, zip or test.
+fn embed_extension() {
+    let source = Path::new(env!("CARGO_MANIFEST_DIR")).join("../extension/src");
+    let mut files = Vec::new();
+    collect(&source, &mut files);
+    files.sort();
+    let mut out = String::from("&[\n");
+    for file in &files {
+        let name = file
+            .strip_prefix(&source)
+            .expect("listed under the source")
+            .components()
+            .map(|part| part.as_os_str().to_string_lossy().into_owned())
+            .collect::<Vec<_>>()
+            .join("/");
+        let path = file.display().to_string();
+        out.push_str(&format!("    ({name:?}, include_bytes!({path:?}) as &[u8]),\n"));
+    }
+    out.push_str("]\n");
+    let out_dir = PathBuf::from(std::env::var("OUT_DIR").expect("cargo sets OUT_DIR"));
+    let target = out_dir.join("extension_files.rs");
+    std::fs::write(target, out).expect("OUT_DIR is writable");
+    println!("cargo:rerun-if-changed={}", source.display());
+}
+
+fn collect(dir: &Path, files: &mut Vec<PathBuf>) {
+    let Ok(entries) = std::fs::read_dir(dir) else { return };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        let name = entry.file_name().to_string_lossy().into_owned();
+        let left_out =
+            matches!(name.as_str(), "key.pem" | ".gitignore" | ".DS_Store" | "Thumbs.db")
+            || name.ends_with(".zip")
+            || name.ends_with(".test.js")
+            || name.ends_with(".test.mjs")
+            || name.ends_with(".test.cjs");
+        if left_out {
+            continue;
+        }
+        if path.is_dir() {
+            collect(&path, files);
+        } else {
+            files.push(path);
+        }
+    }
 }
 
 /// Record the commit this build was made from.

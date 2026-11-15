@@ -69,6 +69,7 @@ import {
   siteOfUrl,
   worthPushing,
   LENT_FIRST,
+  reloadFor,
 } from './sessions.js';
 // </full>
 
@@ -190,6 +191,9 @@ function sendNative(request) {
           return;
         }
         if (response.ok === true) {
+          // <full>
+          void reloadIfUpdated(response.status);
+          // </full>
           resolve({ ok: true, status: response.status ?? null, preview: response.preview ?? null });
           return;
         }
@@ -1650,6 +1654,28 @@ async function retireSessions() {
 }
 
 // <full>
+const RELOADED_KEY = 'reloadedFor';
+
+// An unpacked copy loaded from the app's folder picks up an updated app's
+// files by reloading; a browser reads that folder only when it starts the
+// extension. A store or Firefox install is never 'development' and is left
+// to its own updates.
+async function reloadIfUpdated(status) {
+  try {
+    const onDisk = status?.extensionOnDisk;
+    if (typeof onDisk !== 'string') return;
+    const own = await chrome.management.getSelf();
+    if (own.installType !== 'development') return;
+    const tried = (await chrome.storage.local.get(RELOADED_KEY))[RELOADED_KEY];
+    const target = reloadFor(chrome.runtime.getManifest().version, onDisk, tried);
+    if (target === null) return;
+    await chrome.storage.local.set({ [RELOADED_KEY]: target });
+    chrome.runtime.reload();
+  } catch {
+    // Without management or storage it stays as it is, to be reloaded by hand.
+  }
+}
+
 chrome.runtime.onStartup.addListener(() => {
   ensureAlarm();
   void backgroundPush();

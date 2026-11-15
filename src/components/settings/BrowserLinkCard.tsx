@@ -8,6 +8,7 @@ import {
   CircleDashed,
   Copy,
   ExternalLink,
+  FolderOpen,
   TriangleAlert,
   type LucideIcon,
 } from 'lucide-react';
@@ -23,7 +24,13 @@ import { cn } from '@/lib/cn';
 import { COLLAPSE } from '@/lib/motion';
 import { IS_MOBILE } from '@/lib/platform';
 import * as ipc from '@/services/ipc';
-import type { BridgeSite, BridgeSessionState, BridgeStatus, Settings } from '@/types';
+import type {
+  BridgeSite,
+  BridgeSessionState,
+  BridgeStatus,
+  ExtensionFolder,
+  Settings,
+} from '@/types';
 
 /**
  * How often the section re-reads the link while it is on screen.
@@ -277,6 +284,7 @@ export function BrowserLinkCard({ settings, update, initialStatus = null }: Brow
     <>
       <SettingGroup>
         <ExtensionRow status={status} />
+        {!IS_MOBILE && <ExtensionFolderRow />}
       </SettingGroup>
 
       <SettingGroup>
@@ -675,5 +683,89 @@ function ExtensionRow({ status }: { status: BridgeStatus | null }) {
         ) : undefined
       }
     />
+  );
+}
+
+/**
+ * The folder the app keeps the unpacked extension in. Loaded from there, the
+ * extension is updated whenever the app is: every launch rewrites the folder,
+ * and the extension reloads itself when it sees the new version.
+ */
+function ExtensionFolderRow() {
+  const { t } = useTranslation();
+  const [folder, setFolder] = useState<ExtensionFolder | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [copied, markCopied] = useMomentary();
+
+  useEffect(() => {
+    let live = true;
+    ipc
+      .extensionFolder()
+      .then((found) => live && setFolder(found))
+      .catch(() => live && setFailed(true));
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  const open = async () => {
+    setFailed(false);
+    try {
+      await ipc.openExtensionDir();
+    } catch {
+      setFailed(true);
+    }
+  };
+
+  const copy = async () => {
+    if (!folder) return;
+    try {
+      await navigator.clipboard.writeText(folder.path);
+      markCopied();
+    } catch {
+      setFailed(true);
+    }
+  };
+
+  return (
+    <SettingRow
+      stacked
+      title={t('settings.extensionFolder')}
+      description={t('settings.extensionFolderHint')}
+    >
+      {folder && (
+        <div className="flex min-w-0 items-center gap-1.5">
+          <code
+            className="min-w-0 flex-1 truncate rounded-md bg-fill px-2 py-1 font-mono text-[12px] text-fg-muted select-text"
+            title={folder.path}
+          >
+            {folder.path}
+          </code>
+          <Button
+            size="sm"
+            variant="ghost"
+            aria-label={t('settings.extensionFolderCopy')}
+            title={t('settings.extensionFolderCopy')}
+            className="px-2"
+            icon={copied ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
+            onClick={() => void copy()}
+          />
+          <Button
+            size="sm"
+            variant="secondary"
+            icon={<FolderOpen size={13} />}
+            onClick={() => void open()}
+          >
+            {t('settings.extensionFolderOpen')}
+          </Button>
+        </div>
+      )}
+      {folder?.version && (
+        <p className={cn('text-fg-faint', BODY_SIZE)}>
+          {t('settings.extensionFolderVersion', { version: folder.version })}
+        </p>
+      )}
+      {failed && <InlineNotice tone="error">{t('settings.extensionFolderFailed')}</InlineNotice>}
+    </SettingRow>
   );
 }

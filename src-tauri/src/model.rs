@@ -1467,3 +1467,11 @@ mod tests {
         assert!(serde_json::from_str::<HistoryRange>("\"month\"").is_err());
     }
 }
+
+/// The unpacked extension's folder, for the Connection page.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExtensionFolder {
+    pub path: String,
+    pub version: Option<String>,
+}

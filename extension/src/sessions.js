@@ -200,3 +200,11 @@ export function otherSiteOf(raw) {
   if (domain === null) return null;
   return OWN_SWITCH.has(domain.split('.')[0]) ? null : domain;
 }
+
+// The version an unpacked copy should reload itself for, or null. Only once
+// per version: a copy loaded from some other folder reloads into the same old
+// files, and must not do so forever.
+export function reloadFor(running, onDisk, tried) {
+  if (typeof onDisk !== 'string' || onDisk === '' || onDisk === running) return null;
+  return onDisk === tried ? null : onDisk;
+}
