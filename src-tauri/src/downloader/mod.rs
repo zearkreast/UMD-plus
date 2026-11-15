@@ -457,6 +457,30 @@ async fn download_analyzed(
     if let Some(subtitle) = subtitle {
         subtitles::keep_beside(&final_path, &subtitle.path, &subtitle.language);
     }
+    // The cover as a picture of its own, beside the file and named after it.
+    // Not for a picture, which is its own cover. Losing it loses no download.
+    if settings.save_cover && plan.image.is_none() {
+        let url = metadata.music.as_ref().and_then(|song| song.cover_url.as_deref()).or(metadata.thumbnail_url.as_deref());
+        if let Some(url) = url {
+            match fetch_cover(url, &temp_dir.join(format!("{task_id}.keep")), settings).await {
+                Some((fetched, _)) => {
+                    let extension = match fetched.extension().and_then(|ext| ext.to_str()) {
+                        Some("img") | None => "webp",
+                        Some(known) => known,
+                    };
+                    let beside = final_path.with_extension(extension);
+                    // Never over the download itself, nor over a file that is there.
+                    if beside != final_path && !beside.exists() {
+                        if let Err(err) = std::fs::copy(&fetched, &beside) {
+                            log_info!("downloader", "task {task_id}: the cover was not kept: {err}");
+                        }
+                    }
+                    let _ = std::fs::remove_file(&fetched);
+                }
+                None => log_info!("downloader", "task {task_id}: the cover could not be fetched"),
+            }
+        }
+    }
     let file_size = std::fs::metadata(&final_path).map(|m| m.len()).unwrap_or(0);
 
     let mut done = aggregate.processing(DownloadStage::Done, Some(100.0));
@@ -1148,8 +1172,28 @@ fn target_path(
         .and_then(dashed_date)
         .unwrap_or_else(|| chrono::Local::now().format("%Y-%m-%d").to_string());
 
+    // The template's folders, under the download folder. One that cannot be
+    // made leaves the file in the download folder rather than failing it.
+    let folders = filename::render_folders(
+        &settings.filename_template,
+        &filename::NameContext {
+            title: &metadata.title,
+            creator: metadata.creator.as_deref(),
+            quality: &plan.quality_label,
+            platform: metadata.platform.slug(),
+            date: &date,
+            ext: &plan.container,
+        },
+    );
+    let nested = folders.iter().fold(output_dir.to_path_buf(), |dir, folder| dir.join(folder));
+    let dir = if folders.is_empty() || std::fs::create_dir_all(&nested).is_err() {
+        output_dir.to_path_buf()
+    } else {
+        nested
+    };
+
     filename::build_output_path(
-        output_dir,
+        &dir,
         &settings.filename_template,
         &filename::NameContext {
             title: &metadata.title,

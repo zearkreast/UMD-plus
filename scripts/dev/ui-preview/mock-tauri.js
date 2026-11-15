@@ -71,6 +71,7 @@
     autoUpdate: true,
     resumeOnLaunch: false,
     quickDownload: false,
+    saveCover: false,
     downloadDir: 'C:\\Users\\melik\\Downloads\\Universal Downloader',
     defaultMode: 'video',
     defaultQuality: { type: 'best' },

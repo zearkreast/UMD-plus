@@ -808,18 +808,18 @@ pub fn path_exists(path: String) -> bool {
 /// Live preview for the file-name template field in Settings.
 #[tauri::command]
 pub fn preview_filename(template: String) -> String {
-    let rendered = filename::render_template(
-        &template,
-        &filename::NameContext {
-            title: "How It Works",
-            creator: Some("Creator"),
-            quality: "1080p",
-            platform: "youtube",
-            date: &chrono::Local::now().format("%Y-%m-%d").to_string(),
-            ext: "mp4",
-        },
-    );
-    format!("{rendered}.mp4")
+    let date = chrono::Local::now().format("%Y-%m-%d").to_string();
+    let context = filename::NameContext {
+        title: "How It Works",
+        creator: Some("Creator"),
+        quality: "1080p",
+        platform: "youtube",
+        date: &date,
+        ext: "mp4",
+    };
+    let mut parts = filename::render_folders(&template, &context);
+    parts.push(format!("{}.mp4", filename::render_template(&template, &context)));
+    parts.join(std::path::MAIN_SEPARATOR_STR)
 }
 
 // -- finished files --------------------------------------------------------

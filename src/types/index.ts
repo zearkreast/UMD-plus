@@ -683,6 +683,8 @@ export interface Settings {
    * queue with the default options, without opening on Home first.
    */
   quickDownload: boolean;
+  /** Keep a download's cover as a picture beside it. */
+  saveCover: boolean;
 
   // Downloads
   downloadDir: string;

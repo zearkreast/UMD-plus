@@ -76,6 +76,9 @@ pub struct Settings {
     /// is where a link arrives and where Home would otherwise open it.
     #[serde(default)]
     pub quick_download: bool,
+    /// Keep a download's cover as a picture beside it, named after it.
+    #[serde(default)]
+    pub save_cover: bool,
 
     // Downloads
     pub download_dir: String,
@@ -163,6 +166,7 @@ impl Default for Settings {
             auto_update: default_true(),
             resume_on_launch: false,
             quick_download: false,
+            save_cover: false,
 
             download_dir: paths::default_download_dir().to_string_lossy().into_owned(),
             default_mode: DownloadMode::Video,
@@ -332,7 +336,7 @@ mod tests {
     fn settings_saved_before_the_schedule_still_load() {
         let mut written = serde_json::to_value(Settings::default()).unwrap();
         let object = written.as_object_mut().unwrap();
-        for key in ["scheduleEnabled", "scheduleStart", "scheduleEnd", "speedLimitKb", "embedMetadata", "autoUpdate", "resumeOnLaunch", "quickDownload"] {
+        for key in ["scheduleEnabled", "scheduleStart", "scheduleEnd", "speedLimitKb", "embedMetadata", "autoUpdate", "resumeOnLaunch", "quickDownload", "saveCover"] {
             assert!(object.remove(key).is_some(), "{key}");
         }
         let read: Settings = serde_json::from_value(written).unwrap();

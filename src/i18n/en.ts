@@ -407,12 +407,14 @@ export const en = {
   'settings.embedMetadata': 'Write details into the file',
   'settings.embedMetadataHint':
     'Adds the title, creator, chapters and, where the format allows, a cover. Needs FFmpeg.',
+  'settings.saveCover': 'Keep the cover as a picture',
+  'settings.saveCoverHint': 'The cover of a video or a song is saved beside the file, under the same name.',
   'settings.connectionsCapped': 'Low resource mode is on, so at most two are used.',
   'settings.autoRetry': 'Automatic retries',
   'settings.autoRetryHint': 'Retry a failed download this many times before giving up.',
   'settings.filenameTemplate': 'File name template',
   'settings.filenameTemplateHint':
-    'Available: {title}, {creator}, {quality}, {platform}, {date}, {ext}',
+    'Available: {title}, {creator}, {quality}, {platform}, {date}. A slash makes folders: {platform}/{creator}/{title}',
   'settings.filenamePreview': 'Preview',
 
   'settings.browserExtension': 'Browser extension',
