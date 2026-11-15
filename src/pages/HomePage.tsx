@@ -346,6 +346,7 @@ export function HomePage({
       audioLanguage: options.audioLanguage,
       subtitleLanguage: options.subtitleLanguage,
       embedSubtitles: options.subtitleLanguage != null && options.embedSubtitles,
+      splitChapters: (metadata.chapterCount ?? 0) > 1 && options.mode !== 'image' && options.splitChapters,
       // A link from the browser extension is fetched the way its page fetched
       // it, as its analysis was.
       source: handoff?.source ?? null,

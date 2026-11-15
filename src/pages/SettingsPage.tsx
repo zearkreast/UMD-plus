@@ -680,6 +680,13 @@ function DownloadsSection({ settings, update }: { settings: Settings; update: Up
         )}
 
         <ToggleRow
+          title={t('settings.skipSponsors')}
+          description={t('settings.skipSponsorsHint')}
+          checked={settings.skipSponsors === true}
+          onChange={(checked) => void update({ skipSponsors: checked })}
+        />
+
+        <ToggleRow
           title={t('settings.saveCover')}
           description={t('settings.saveCoverHint')}
           checked={settings.saveCover === true}

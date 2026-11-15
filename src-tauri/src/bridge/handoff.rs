@@ -122,6 +122,7 @@ impl Handoff {
             collection: None,
             subtitle_language: None,
             embed_subtitles: false,
+            split_chapters: false,
             // Present even when every part of it is empty, as it is on the
             // other side. Its presence is what marks a link as handed over,
             // and that decides how it is analysed and what it is called.

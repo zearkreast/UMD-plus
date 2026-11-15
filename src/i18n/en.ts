@@ -78,6 +78,8 @@ export const en = {
   'options.qualityBestHint': 'Highest available video and audio, merged',
   'options.audioBest': 'Best audio',
   'options.audioLanguage': 'Audio language',
+  'options.splitChapters': 'Split by chapters',
+  'options.splitChaptersHint': '{n} chapters, written as separate files into a folder beside it.',
   'options.subtitles': 'Subtitles',
   'options.subtitleAuto': '{name} (auto-generated)',
   'options.subtitlePlacement': 'Where they go',
@@ -413,6 +415,9 @@ export const en = {
     'Adds the title, creator, chapters and, where the format allows, a cover. Needs FFmpeg.',
   'settings.wifiOnly': 'Download on Wi-Fi only',
   'settings.wifiOnlyHint': 'On mobile data downloads do not start, and start by themselves once Wi-Fi is back. One already running carries on if Wi-Fi drops.',
+  'settings.skipSponsors': 'Skip sponsored parts',
+  'settings.skipSponsorsHint':
+    'In YouTube videos, the sponsor, self-promotion and "subscribe" parts the community has marked in SponsorBlock are cut out after the download. The video\'s id is sent to SponsorBlock for this.',
   'settings.saveCover': 'Keep the cover as a picture',
   'settings.saveCoverHint': 'The cover of a video or a song is saved beside the file, under the same name.',
   'settings.connectionsCapped': 'Low resource mode is on, so at most two are used.',

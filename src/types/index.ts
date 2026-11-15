@@ -108,6 +108,8 @@ export interface MediaMetadata {
   listUrl?: string | null;
   /** The subtitles it offers. */
   subtitles?: SubtitleTrack[];
+  /** How many chapters the source marks. */
+  chapterCount?: number;
 }
 
 /** One language of subtitles a video offers. */
@@ -187,6 +189,8 @@ export interface DownloadRequest {
   subtitleLanguage?: string | null;
   /** Write them into the video rather than beside it. */
   embedSubtitles?: boolean;
+  /** Also write each chapter as a file of its own, in a folder beside it. */
+  splitChapters?: boolean;
   /**
    * The page a link was found on, for a link the browser extension handed
    * over. Null for everything else: a link pasted into Home needs no headers.
@@ -691,6 +695,8 @@ export interface Settings {
   saveCover: boolean;
   /** On a phone, start downloads only off mobile data. */
   wifiOnly: boolean;
+  /** Take the parts SponsorBlock marks out of a YouTube download. */
+  skipSponsors: boolean;
 
   // Downloads
   downloadDir: string;

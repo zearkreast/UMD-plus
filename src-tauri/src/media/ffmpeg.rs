@@ -483,6 +483,53 @@ pub fn embed_args(input: &Path, output: &Path, extras: &Embedding<'_>) -> Vec<St
 }
 
 /// Chapters in the text form FFmpeg reads metadata from.
+/// Join the parts a concat list (`downloader::cuts::concat_list`) names into
+/// `output`, copying picture and sound as they are.
+pub fn join_parts_args(list: &Path, output: &Path) -> Vec<String> {
+    let mut args = base_args();
+    args.extend([
+        "-f".into(),
+        "concat".into(),
+        "-safe".into(),
+        "0".into(),
+        "-i".into(),
+        list.to_string_lossy().into_owned(),
+        "-map".into(),
+        "0:v?".into(),
+        "-map".into(),
+        "0:a?".into(),
+        "-c".into(),
+        "copy".into(),
+        // Each part starts its clock again; this keeps them running on.
+        "-avoid_negative_ts".into(),
+        "make_zero".into(),
+        output.to_string_lossy().into_owned(),
+    ]);
+    args
+}
+
+/// `length` seconds of `input` from `start`, copied as they are. The seek is
+/// on the input, so a long file is not read from its beginning for each part.
+pub fn excerpt_args(input: &Path, output: &Path, start: f64, length: f64) -> Vec<String> {
+    let mut args = base_args();
+    args.extend([
+        "-ss".into(),
+        format!("{start:.3}"),
+        "-i".into(),
+        input.to_string_lossy().into_owned(),
+        "-t".into(),
+        format!("{length:.3}"),
+        "-map".into(),
+        "0:v?".into(),
+        "-map".into(),
+        "0:a?".into(),
+        "-c".into(),
+        "copy".into(),
+        output.to_string_lossy().into_owned(),
+    ]);
+    args
+}
+
 pub fn chapter_file(chapters: &[crate::model::Chapter]) -> String {
     // The format's own special characters, backslash first.
     fn escaped(text: &str) -> String {
@@ -1874,6 +1921,17 @@ mod tests {
         assert!(text.contains("-i v.mp4 -i c.txt -i c.jpg -i s.srt"), "{text}");
         assert!(text.contains("-map 2:v:0 -map 3:0"), "{text}");
         assert!(text.contains("-map_chapters 1"), "{text}");
+    }
+
+    #[test]
+    fn a_part_is_cut_and_joined_without_encoding() {
+        let joined = join_parts_args(Path::new("cuts.txt"), Path::new("out.mp4")).join(" ");
+        assert!(joined.contains("-f concat -safe 0 -i cuts.txt"), "{joined}");
+        assert!(joined.ends_with("-c copy -avoid_negative_ts make_zero out.mp4"), "{joined}");
+
+        let excerpt = excerpt_args(Path::new("in.mp4"), Path::new("01.mp4"), 61.5, 30.0).join(" ");
+        assert!(excerpt.contains("-ss 61.500 -i in.mp4 -t 30.000"), "{excerpt}");
+        assert!(excerpt.ends_with("-c copy 01.mp4"), "{excerpt}");
     }
 
     #[test]
