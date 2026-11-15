@@ -187,6 +187,11 @@ impl QueueManager {
     /// would spread an album over increasing times and the newest-first list on
     /// the Downloads screen would read the album backwards.
     pub fn enqueue_at(self: &Arc<Self>, request: DownloadRequest, created_at: i64) -> DownloadTask {
+        self.enqueue_with(request, created_at, DownloadStatus::Queued)
+    }
+
+    /// Enqueue waiting or, with `status` paused, held until it is resumed.
+    pub fn enqueue_with(self: &Arc<Self>, request: DownloadRequest, created_at: i64, status: DownloadStatus) -> DownloadTask {
         let task = DownloadTask {
             id: util::new_id("dl"),
             url: request.url.clone(),
@@ -197,7 +202,7 @@ impl QueueManager {
                 .unwrap_or_else(|| request.url.clone()),
             platform: downloader::platform_of(&request),
             thumbnail_url: request.thumbnail_url.clone(),
-            status: DownloadStatus::Queued,
+            status,
             progress: DownloadProgress::default(),
             format_label: downloader::provisional_label(&request),
             output_path: None,

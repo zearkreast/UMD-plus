@@ -13,6 +13,8 @@ import type {
   ConvertStatus,
   DiagnosticsSnapshot,
   DownloadRequest,
+  Subscription,
+  SubscriptionBackfill,
   DownloadTask,
   Handoff,
   HistoryEntry,
@@ -332,6 +334,7 @@ export const EVENTS = {
   timelineChanged: 'editor://timeline',
   updateProgress: 'update://progress',
   navigate: 'navigate',
+  subscriptionsChanged: 'subscriptions://changed',
 } as const;
 
 export interface ProgressEvent {
@@ -394,6 +397,27 @@ export interface ConvertProgressEvent {
   outputSizeBytes: number | null;
   streamCopied: boolean;
   error: AppErrorInfo | null;
+}
+
+// -- subscriptions -----------------------------------------------------------
+
+export interface SubscriptionChange {
+  enabled?: boolean;
+  skipShorts?: boolean;
+  mode?: 'video' | 'audio';
+}
+
+export const listSubscriptions = () => invoke<Subscription[]>('list_subscriptions');
+export const addSubscription = (request: DownloadRequest, backfill: SubscriptionBackfill, skipShorts: boolean) =>
+  invoke<Subscription>('add_subscription', { request, backfill, skipShorts });
+export const updateSubscription = (id: number, change: SubscriptionChange) =>
+  invoke<Subscription>('update_subscription', { id, change });
+export const removeSubscription = (id: number) => invoke<void>('remove_subscription', { id });
+/** Read every followed list now, due or not. */
+export const checkSubscriptions = () => invoke<void>('check_subscriptions');
+
+export function onSubscriptionsChanged(handler: () => void): Promise<UnlistenFn> {
+  return listen(EVENTS.subscriptionsChanged, () => handler());
 }
 
 export function onConvertChanged(handler: (jobs: ConvertJob[]) => void): Promise<UnlistenFn> {

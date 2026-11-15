@@ -444,6 +444,28 @@ export interface ConvertOptions {
   targetSizeMb?: number | null;
 }
 
+/** What is done with what a list already holds when it is followed. */
+export type SubscriptionBackfill = 'none' | 'top' | 'all';
+
+/** A channel or a list the user follows. */
+export interface Subscription {
+  id: number;
+  url: string;
+  title: string;
+  platform: PlatformId;
+  thumbnailUrl: string | null;
+  enabled: boolean;
+  skipShorts: boolean;
+  createdAt: number;
+  lastCheckedAt: number | null;
+  /** How many new items the latest reading queued. */
+  lastFound: number;
+  lastError: string | null;
+  failures: number;
+  /** The options each new item downloads with. */
+  template: DownloadRequest;
+}
+
 export interface ConvertRequest {
   inputPaths: string[];
   options: ConvertOptions;
@@ -697,6 +719,11 @@ export interface Settings {
   wifiOnly: boolean;
   /** Take the parts SponsorBlock marks out of a YouTube download. */
   skipSponsors: boolean;
+  /** How often each followed list is read again, in hours. */
+  subscriptionIntervalHours: number;
+  /** New items of a followed list start by themselves; off, they wait paused. */
+  subscriptionAutoDownload: boolean;
+  subscriptionNotify: boolean;
 
   // Downloads
   downloadDir: string;

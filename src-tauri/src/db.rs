@@ -34,7 +34,7 @@ impl Database {
         Ok(db)
     }
 
-    fn lock(&self) -> AppResult<std::sync::MutexGuard<'_, Connection>> {
+    pub(crate) fn lock(&self) -> AppResult<std::sync::MutexGuard<'_, Connection>> {
         self.conn
             .lock()
             .map_err(|_| AppError::Database("database lock was poisoned".into()))
@@ -79,6 +79,9 @@ impl Database {
                 "#,
             )?;
         }
+
+        // Made where missing, whatever the version: they came after it.
+        conn.execute_batch(crate::subscriptions::TABLES)?;
 
         if version != SCHEMA_VERSION {
             conn.pragma_update(None, "user_version", SCHEMA_VERSION)?;

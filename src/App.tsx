@@ -34,6 +34,7 @@ import { DownloadsPage, QueueEndingDialog, showDownloadsSegment } from '@/pages/
 import { EditorPage } from '@/pages/EditorPage';
 import { HistoryPage } from '@/pages/HistoryPage';
 import { HomePage } from '@/pages/HomePage';
+import { SubscriptionsPage } from '@/pages/SubscriptionsPage';
 import { SettingsPage, type SettingsSection } from '@/pages/SettingsPage';
 import * as ipc from '@/services/ipc';
 import { useAnalysisStore } from '@/stores/useAnalysisStore';
@@ -123,7 +124,9 @@ function moveBetween(from: NavState, to: NavState): PhoneMove {
  * that is showing.
  */
 function phoneState(requested: NavRequest, current: NavState): NavState {
-  if (requested.route === 'history') return { route: 'downloads', section: null, tab: 'downloads' };
+  if (requested.route === 'history' || requested.route === 'subscriptions') {
+    return { route: 'downloads', section: null, tab: 'downloads' };
+  }
   if (requested.route === 'about') return { route: 'about', section: null, tab: current.tab };
   return {
     route: requested.route,
@@ -342,6 +345,7 @@ export function App() {
   const navigate = useCallback((requested: NavRequest) => {
     const current = navRef.current;
     if (IS_MOBILE && requested.route === 'history') showDownloadsSegment('history');
+    if (IS_MOBILE && requested.route === 'subscriptions') showDownloadsSegment('subscriptions');
     const next: NavState = IS_MOBILE
       ? phoneState(requested, current)
       : {
@@ -494,7 +498,7 @@ export function App() {
       ipc.onFetchChanged(applyFetch),
       ipc.onTimelineChanged(applyTimeline),
       ipc.onNavigate((target) => {
-        if (['home', 'downloads', 'convert', 'editor', 'history', 'settings', 'about'].includes(target)) {
+        if (['home', 'downloads', 'convert', 'editor', 'history', 'subscriptions', 'settings', 'about'].includes(target)) {
           setRoute(target as Route);
         }
       }),
@@ -713,7 +717,7 @@ export function App() {
     [askHome, setRoute],
   );
 
-  // Ctrl+1 ... Ctrl+7: the sidebar's places, top to bottom. The phone has no
+  // Ctrl+1 ... Ctrl+8: the sidebar's places, top to bottom. The phone has no
   // keyboard to speak of and a different set of places.
   const goToPlace = useCallback(
     (position: number) => {
@@ -790,6 +794,7 @@ export function App() {
           inputRef={urlInputRef}
           request={homeRequest}
           onGoToDownloads={goToDownloads}
+          onOpenSubscriptions={() => setRoute('subscriptions')}
           // A section to point at opens Settings already at it; the desktop
           // keeps it for the settings route, and the phone opens it as its page.
           onOpenSettings={(section) => (section ? setSettingsSection(section) : setRoute('settings'))}
@@ -801,6 +806,7 @@ export function App() {
       {route === 'editor' && <EditorPage settings={settings} onBackRef={editorBackRef} />}
       {/* The desktop's alone: a phone sends History to Downloads. */}
       {route === 'history' && <HistoryPage onGoHome={() => setRoute('home')} />}
+      {route === 'subscriptions' && <SubscriptionsPage onGoHome={() => setRoute('home')} />}
       {route === 'settings' && (
         <SettingsPage
           settings={settings}

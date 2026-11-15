@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'motion/react';
 import {
+  Bell,
   Clock,
   Download,
   House,
@@ -23,7 +24,15 @@ import type { TranslationKey } from '@/i18n';
 import { useQueueStore } from '@/stores/useQueueStore';
 import { Logo, Wordmark } from './Logo';
 
-export type Route = 'home' | 'downloads' | 'convert' | 'editor' | 'history' | 'settings' | 'about';
+export type Route =
+  | 'home'
+  | 'downloads'
+  | 'convert'
+  | 'editor'
+  | 'history'
+  | 'subscriptions'
+  | 'settings'
+  | 'about';
 
 interface NavEntry {
   route: Route;
@@ -43,6 +52,7 @@ const PRIMARY: NavEntry[] = [
   { route: 'editor', label: 'nav.editor', icon: Film },
   { route: 'convert', label: 'nav.convert', icon: Repeat },
   { route: 'history', label: 'nav.history', icon: Clock },
+  { route: 'subscriptions', label: 'nav.subscriptions', icon: Bell },
 ];
 
 const SECONDARY: NavEntry[] = [

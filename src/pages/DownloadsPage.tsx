@@ -12,6 +12,7 @@ import { create } from 'zustand';
 import { DownloadCard } from '@/components/downloads/DownloadCard';
 import { DownloadDetailDialog, openDownloadDetails } from '@/components/downloads/DownloadDetailDialog';
 import { HistoryList } from '@/components/history/HistoryList';
+import { SubscriptionsList } from '@/components/subscriptions/SubscriptionsList';
 import { Button } from '@/components/ui/Button';
 import { Dropdown } from '@/components/ui/Dropdown';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -73,7 +74,7 @@ export function DownloadsPage({ onGoHome }: { onGoHome: () => void }) {
 
 // -- the phone's two halves ---------------------------------------------------
 
-export type DownloadsSegment = 'active' | 'history';
+export type DownloadsSegment = 'active' | 'history' | 'subscriptions';
 
 /**
  * Which half of Downloads the phone shows, once it has shown one. Kept outside
@@ -123,7 +124,7 @@ function PhoneDownloads({ onGoHome }: { onGoHome: () => void }) {
   // under the system's reduced motion only fades: a transform string is beyond
   // the reach of `MotionConfig` (see App).
   const still = useReducedMotionConfig() ?? false;
-  const direction = still ? 0 : segment === 'history' ? 1 : -1;
+  const direction = still ? 0 : segment === 'active' ? -1 : 1;
 
   return (
     <div className="mx-auto w-full max-w-[760px] px-4 pb-12 pt-2">
@@ -133,6 +134,7 @@ function PhoneDownloads({ onGoHome }: { onGoHome: () => void }) {
         options={[
           { value: 'active', label: t('downloads.active') },
           { value: 'history', label: t('nav.history') },
+          { value: 'subscriptions', label: t('nav.subscriptions') },
         ]}
       />
 
@@ -148,8 +150,10 @@ function PhoneDownloads({ onGoHome }: { onGoHome: () => void }) {
         >
           {segment === 'active' ? (
             <CurrentDownloads onGoHome={onGoHome} />
-          ) : (
+          ) : segment === 'history' ? (
             <HistoryList onGoHome={onGoHome} />
+          ) : (
+            <SubscriptionsList onGoHome={onGoHome} />
           )}
         </motion.div>
       </AnimatePresence>

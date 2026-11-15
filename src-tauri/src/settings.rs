@@ -87,6 +87,14 @@ pub struct Settings {
     /// asked for: it sends the video's id to SponsorBlock.
     #[serde(default)]
     pub skip_sponsors: bool,
+    /// How often each followed list is read again, in hours.
+    #[serde(default = "default_subscription_interval")]
+    pub subscription_interval_hours: u32,
+    /// New items of a followed list start by themselves; off, they wait paused.
+    #[serde(default = "default_true")]
+    pub subscription_auto_download: bool,
+    #[serde(default = "default_true")]
+    pub subscription_notify: bool,
 
     // Downloads
     pub download_dir: String,
@@ -177,6 +185,9 @@ impl Default for Settings {
             save_cover: false,
             wifi_only: false,
             skip_sponsors: false,
+            subscription_interval_hours: default_subscription_interval(),
+            subscription_auto_download: true,
+            subscription_notify: true,
 
             download_dir: paths::default_download_dir().to_string_lossy().into_owned(),
             default_mode: DownloadMode::Video,
@@ -245,6 +256,7 @@ impl Settings {
     /// config carried an out-of-range value.
     pub fn sanitize(&mut self) {
         self.max_concurrent_downloads = self.max_concurrent_downloads.clamp(1, 10);
+        self.subscription_interval_hours = self.subscription_interval_hours.clamp(1, 48);
         self.auto_retry_count = self.auto_retry_count.min(10);
         self.network_timeout_sec = self.network_timeout_sec.clamp(5, 600);
         self.cache_limit_mb = self.cache_limit_mb.clamp(32, 8192);
@@ -294,6 +306,10 @@ fn default_browser_link() -> bool {
 /// lines, few enough that hosts rarely object.
 fn default_connections() -> u32 {
     8
+}
+
+fn default_subscription_interval() -> u32 {
+    6
 }
 
 fn default_true() -> bool {
@@ -346,12 +362,14 @@ mod tests {
     fn settings_saved_before_the_schedule_still_load() {
         let mut written = serde_json::to_value(Settings::default()).unwrap();
         let object = written.as_object_mut().unwrap();
-        for key in ["scheduleEnabled", "scheduleStart", "scheduleEnd", "speedLimitKb", "embedMetadata", "autoUpdate", "resumeOnLaunch", "quickDownload", "saveCover", "wifiOnly", "skipSponsors"] {
+        for key in ["scheduleEnabled", "scheduleStart", "scheduleEnd", "speedLimitKb", "embedMetadata", "autoUpdate", "resumeOnLaunch", "quickDownload", "saveCover", "wifiOnly", "skipSponsors", "subscriptionIntervalHours", "subscriptionAutoDownload", "subscriptionNotify"] {
             assert!(object.remove(key).is_some(), "{key}");
         }
         let read: Settings = serde_json::from_value(written).unwrap();
         assert!(read.auto_update, "an install from before the switch keeps updating itself");
         assert!(!read.resume_on_launch);
+        assert_eq!(read.subscription_interval_hours, 6);
+        assert!(read.subscription_auto_download && read.subscription_notify);
         assert!(!read.schedule_enabled);
         assert_eq!(read.schedule_start, "02:00");
         assert!(read.embed_metadata);

@@ -74,6 +74,9 @@
     saveCover: false,
     wifiOnly: false,
     skipSponsors: false,
+    subscriptionIntervalHours: 6,
+    subscriptionAutoDownload: true,
+    subscriptionNotify: true,
     downloadDir: 'C:\\Users\\melik\\Downloads\\Universal Downloader',
     defaultMode: 'video',
     defaultQuality: { type: 'best' },
@@ -955,6 +958,34 @@
   const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const calls = [];
 
+  const subscriptionTemplate = (url, title, mode) => ({
+    url, mode, quality: { type: 'best' }, videoFormatId: null, audioFormatId: null,
+    container: mode === 'video' ? 'mp4' : null, watermark: 'any', outputDir: null,
+    title, thumbnailUrl: null, platform: 'youtube',
+  });
+  let subscriptions = empty
+    ? []
+    : [
+        {
+          id: 1, url: 'https://www.youtube.com/@yolnotlari/videos', title: 'Yol Notları', platform: 'youtube',
+          thumbnailUrl: null, enabled: true, skipShorts: true, createdAt: now - 9 * 86400000,
+          lastCheckedAt: now - 2 * 3600000, lastFound: 2, lastError: null, failures: 0,
+          template: subscriptionTemplate('https://www.youtube.com/@yolnotlari/videos', 'Yol Notları', 'video'),
+        },
+        {
+          id: 2, url: 'https://www.youtube.com/playlist?list=PLlofi', title: 'Lo-fi Gece Listesi', platform: 'youtube',
+          thumbnailUrl: null, enabled: true, skipShorts: true, createdAt: now - 20 * 86400000,
+          lastCheckedAt: now - 2 * 3600000, lastFound: 0, lastError: null, failures: 0,
+          template: subscriptionTemplate('https://www.youtube.com/playlist?list=PLlofi', 'Lo-fi Gece Listesi', 'audio'),
+        },
+        {
+          id: 3, url: 'https://www.youtube.com/@bilimturu/videos', title: 'Bilim Turu', platform: 'youtube',
+          thumbnailUrl: null, enabled: false, skipShorts: false, createdAt: now - 40 * 86400000,
+          lastCheckedAt: now - 30 * 3600000, lastFound: 0, lastError: null, failures: 0,
+          template: subscriptionTemplate('https://www.youtube.com/@bilimturu/videos', 'Bilim Turu', 'video'),
+        },
+      ];
+
   const commands = {
     get_settings: () => settings,
     save_settings: ({ settings: next }) => Object.assign(settings, next),
@@ -1481,6 +1512,53 @@
       return filter?.oldestFirst ? [...rows].reverse() : rows;
     },
     history_platforms: () => [...new Set(history.map((entry) => entry.platform))],
+    list_subscriptions: () => subscriptions,
+    add_subscription: ({ request, skipShorts }) => {
+      const entry = {
+        id: subscriptions.length + 1,
+        url: request.url,
+        title: request.title ?? 'Liste',
+        platform: request.platform ?? 'youtube',
+        thumbnailUrl: null,
+        enabled: true,
+        skipShorts,
+        createdAt: Date.now(),
+        lastCheckedAt: Date.now(),
+        lastFound: 0,
+        lastError: null,
+        failures: 0,
+        template: request,
+      };
+      subscriptions = [entry, ...subscriptions];
+      emit('subscriptions://changed', null);
+      return entry;
+    },
+    update_subscription: ({ id, change }) => {
+      subscriptions = subscriptions.map((entry) =>
+        entry.id === id
+          ? {
+              ...entry,
+              ...(change.enabled != null ? { enabled: change.enabled } : {}),
+              ...(change.skipShorts != null ? { skipShorts: change.skipShorts } : {}),
+              ...(change.mode ? { template: { ...entry.template, mode: change.mode } } : {}),
+            }
+          : entry,
+      );
+      emit('subscriptions://changed', null);
+      return subscriptions.find((entry) => entry.id === id);
+    },
+    remove_subscription: ({ id }) => {
+      subscriptions = subscriptions.filter((entry) => entry.id !== id);
+      emit('subscriptions://changed', null);
+      return null;
+    },
+    check_subscriptions: () => {
+      setTimeout(() => {
+        subscriptions = subscriptions.map((entry) => ({ ...entry, lastCheckedAt: Date.now() }));
+        emit('subscriptions://changed', null);
+      }, 800);
+      return null;
+    },
     count_history: ({ range }) => history.filter(inRange(range)).length,
     delete_history_entry: ({ id }) => (removeWhere((entry) => entry.id === id), null),
     clear_history: ({ range }) => {
