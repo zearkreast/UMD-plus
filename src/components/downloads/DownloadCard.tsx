@@ -56,7 +56,7 @@ const LINE = cn(ROW_LINE, 'gap-x-3');
  * long until it tries again. The backend sends the moment once, so the
  * seconds are counted here.
  */
-function WaitingForNetwork({ until }: { until: number }) {
+function WaitingForNetwork({ until, wifi }: { until: number; wifi: boolean }) {
   const { t } = useTranslation();
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -69,7 +69,9 @@ function WaitingForNetwork({ until }: { until: number }) {
     <>
       <span className="flex min-w-0 items-center gap-1.5 text-warning">
         <WifiOff size={13} className="shrink-0" />
-        <span className="truncate">{t('downloads.waitingForNetwork')}</span>
+        <span className="truncate">
+          {t(wifi ? 'downloads.waitingForWifi' : 'downloads.waitingForNetwork')}
+        </span>
       </span>
       {seconds > 0 && <span>{t('downloads.retryIn', { n: seconds })}</span>}
     </>
@@ -158,7 +160,9 @@ export const DownloadCard = memo(function DownloadCard({
               {progress.percent != null && (
                 <span className="min-w-[34px]">{Math.floor(percent)}%</span>
               )}
-              {waitingUntil != null && <WaitingForNetwork until={waitingUntil} />}
+              {waitingUntil != null && (
+                <WaitingForNetwork until={waitingUntil} wifi={progress.waitingForWifi === true} />
+              )}
               {waitingUntil == null && !TRANSFER_STAGES.has(progress.stage) && (
                 <span className="min-w-0 max-w-full truncate">
                   {t(`stage.${progress.stage}` as TranslationKey)}

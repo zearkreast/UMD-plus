@@ -193,6 +193,7 @@ export const en = {
   'downloads.eta': '{time} left',
   'downloads.paused': 'Paused',
   'downloads.waitingForNetwork': 'Waiting for the internet',
+  'downloads.waitingForWifi': 'Waiting for Wi-Fi',
   'downloads.retryIn': 'Trying again in {n} s',
   'downloads.tryNow': 'Try now',
   'downloads.canceled': 'Canceled',
@@ -410,6 +411,8 @@ export const en = {
   'settings.embedMetadata': 'Write details into the file',
   'settings.embedMetadataHint':
     'Adds the title, creator, chapters and, where the format allows, a cover. Needs FFmpeg.',
+  'settings.wifiOnly': 'Download on Wi-Fi only',
+  'settings.wifiOnlyHint': 'On mobile data downloads do not start, and start by themselves once Wi-Fi is back. One already running carries on if Wi-Fi drops.',
   'settings.saveCover': 'Keep the cover as a picture',
   'settings.saveCoverHint': 'The cover of a video or a song is saved beside the file, under the same name.',
   'settings.connectionsCapped': 'Low resource mode is on, so at most two are used.',

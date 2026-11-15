@@ -1,7 +1,7 @@
 {
   "name": "universal-downloader",
   "private": true,
-  "version": "2.9.4",
+  "version": "2.9.5",
   "type": "module",
   "description": "Fast, private and ad-free media downloading.",
   "license": "GPL-3.0-only",

@@ -1,6 +1,6 @@
 [package]
 name = "universal-downloader"
-version = "2.9.4"
+version = "2.9.5"
 description = "Fast, private and ad-free media downloading."
 authors = ["UMD+"]
 license = "GPL-3.0-only"

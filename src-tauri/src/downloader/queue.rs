@@ -604,12 +604,17 @@ impl QueueManager {
         let mut line_waits = 0u32;
 
         let outcome = loop {
+            #[cfg(target_os = "android")]
+            if !self.hold_for_wifi(&task.id, &control).await {
+                break Err(AppError::Canceled);
+            }
             attempt += 1;
             self.update_task(&task.id, |current| {
                 current.attempt = attempt;
                 current.status = DownloadStatus::Downloading;
                 current.error = None;
                 current.progress.waiting_for_network = None;
+                current.progress.waiting_for_wifi = false;
             });
 
             let mut sink = {
@@ -715,6 +720,21 @@ impl QueueManager {
                 _ = tokio::time::sleep(Duration::from_millis(500)) => {}
             }
         }
+    }
+
+    /// Keep a download from starting while the phone is on mobile data and
+    /// was asked to keep to Wi-Fi, looking again every half minute and when
+    /// asked. Says whether the download is still wanted. Only a start is held:
+    /// a download already running when the phone leaves Wi-Fi carries on.
+    #[cfg(target_os = "android")]
+    async fn hold_for_wifi(&self, id: &str, control: &TaskControl) -> bool {
+        while self.settings().wifi_only && crate::android::on_metered(&self.app).await {
+            self.update_task(id, |task| task.progress.waiting_for_wifi = true);
+            if !self.wait_for_line(id, Duration::from_secs(30), control).await {
+                return false;
+            }
+        }
+        true
     }
 
     /// Try the line again now, for every download waiting for it.

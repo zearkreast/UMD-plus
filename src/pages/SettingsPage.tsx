@@ -670,6 +670,15 @@ function DownloadsSection({ settings, update }: { settings: Settings; update: Up
           onChange={(checked) => void update({ embedMetadata: checked })}
         />
 
+        {IS_MOBILE && (
+          <ToggleRow
+            title={t('settings.wifiOnly')}
+            description={t('settings.wifiOnlyHint')}
+            checked={settings.wifiOnly === true}
+            onChange={(checked) => void update({ wifiOnly: checked })}
+          />
+        )}
+
         <ToggleRow
           title={t('settings.saveCover')}
           description={t('settings.saveCoverHint')}

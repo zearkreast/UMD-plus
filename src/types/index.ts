@@ -306,6 +306,8 @@ export interface DownloadProgress {
    * again, in milliseconds since the epoch.
    */
   waitingForNetwork?: number | null;
+  /** The wait is for Wi-Fi: the phone is on mobile data and keeps off it. */
+  waitingForWifi?: boolean;
 }
 
 /** One piece of a split transfer: `[start, end)`, the first `received` bytes on disk. */
@@ -687,6 +689,8 @@ export interface Settings {
   quickDownload: boolean;
   /** Keep a download's cover as a picture beside it. */
   saveCover: boolean;
+  /** On a phone, start downloads only off mobile data. */
+  wifiOnly: boolean;
 
   // Downloads
   downloadDir: string;
