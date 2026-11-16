@@ -144,6 +144,21 @@ function SubscriptionRow({
         ? { text: t('subs.found', { n: entry.lastFound }), tone: 'accent' as const }
         : { text: t('subs.nothingNew'), tone: 'muted' as const };
 
+  // Beside the title a phone leaves the title a few letters wide, so there it
+  // joins the line under it.
+  const badge = (
+    <span
+      className={cn(
+        'shrink-0 whitespace-nowrap rounded-full px-2 py-px text-[12px] font-medium',
+        state.tone === 'accent' && 'bg-accent-soft text-accent',
+        state.tone === 'error' && 'bg-error-soft text-error',
+        state.tone === 'muted' && 'bg-fill text-fg-muted',
+      )}
+    >
+      {state.text}
+    </span>
+  );
+
   return (
     <div>
       <div className={cn('flex min-w-0 items-center gap-3 px-4', IS_MOBILE ? 'py-3' : 'py-2.5', open && 'bg-fill')}>
@@ -162,23 +177,17 @@ function SubscriptionRow({
           </span>
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[13.5px] font-medium text-fg">{entry.title}</span>
-            <span className="tabular flex flex-wrap gap-x-3 text-[12.5px] text-fg-muted">
-              <span>{platformPresentation(entry.platform).label}</span>
+            <span className="tabular flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[12.5px] text-fg-muted">
+              <span className="whitespace-nowrap">{platformPresentation(entry.platform).label}</span>
               {entry.lastCheckedAt != null && (
-                <span>{t('subs.readAt', { time: when(entry.lastCheckedAt, language) })}</span>
+                <span className="min-w-0 max-w-full truncate">
+                  {t('subs.readAt', { time: when(entry.lastCheckedAt, language) })}
+                </span>
               )}
+              {IS_MOBILE && badge}
             </span>
           </span>
-          <span
-            className={cn(
-              'shrink-0 rounded-full px-2 py-px text-[12px] font-medium',
-              state.tone === 'accent' && 'bg-accent-soft text-accent',
-              state.tone === 'error' && 'bg-error-soft text-error',
-              state.tone === 'muted' && 'bg-fill text-fg-muted',
-            )}
-          >
-            {state.text}
-          </span>
+          {!IS_MOBILE && badge}
           <ChevronRight
             size={14}
             aria-hidden="true"
@@ -203,10 +212,17 @@ function SubscriptionRow({
           >
             <div className="flex flex-col gap-3 px-4 pb-3.5 pt-1" style={{ paddingLeft: IS_MOBILE ? 64 : 68 }}>
               {failing && <p className="text-[12.5px] text-error">{entry.lastError}</p>}
-              <div className="flex flex-wrap items-center justify-between gap-2">
+              {/* Beside its label on a phone, "Yalnızca ses" has no room. */}
+              <div
+                className={cn(
+                  'flex gap-2',
+                  IS_MOBILE ? 'flex-col' : 'flex-wrap items-center justify-between',
+                )}
+              >
                 <span className="text-[13px] text-fg">{t('options.mode')}</span>
                 <Segmented
                   size="sm"
+                  className={IS_MOBILE ? 'w-full' : undefined}
                   value={entry.template.mode === 'audio' ? 'audio' : 'video'}
                   onChange={(mode) => change({ mode })}
                   options={[

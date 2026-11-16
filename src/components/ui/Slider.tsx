@@ -44,6 +44,9 @@ export function Slider({
   // Where the thumb is while it is held; null when it rests on `value`.
   const [draft, setDraft] = useState<number | null>(null);
   const shown = draft ?? value;
+  // A phone's slider spans its row, so the value sits at the end of the track
+  // rather than alone on a line above it.
+  const inline = IS_MOBILE && !label;
   const percent = max === min ? 0 : ((shown - min) / (max - min)) * 100;
 
   const commit = () => {
@@ -52,24 +55,20 @@ export function Slider({
     if (draft !== value) onChange(draft);
   };
 
-  return (
-    <div className={cn('flex flex-col gap-2', className)}>
-      {/* The current value is always shown -- a slider whose position means
-          nothing is not a control, it is a guess. The inline label is optional
-          because the title often lives in the surrounding settings row. */}
-      <div className="flex items-baseline justify-between gap-3">
-        {label ? (
-          <label htmlFor={id} className="text-[12.5px] font-medium text-fg-muted">
-            {label}
-          </label>
-        ) : (
-          <span aria-hidden="true" />
-        )}
-        <span className={cn('tabular text-fg-muted', IS_MOBILE ? 'text-[14px]' : 'text-[13px]')}>
-          {formatValue ? formatValue(shown) : shown}
-        </span>
-      </div>
-      <input
+  const valueText = (
+    <span
+      className={cn(
+        'tabular shrink-0 text-fg-muted',
+        IS_MOBILE ? 'text-[14px]' : 'text-[13px]',
+        inline && 'min-w-[3ch] text-right',
+      )}
+    >
+      {formatValue ? formatValue(shown) : shown}
+    </span>
+  );
+
+  const input = (
+    <input
         id={id}
         type="range"
         min={min}
@@ -91,7 +90,7 @@ export function Slider({
           background: `var(--brand-bar) 0 0 / ${percent}% 100% no-repeat, var(--fill-active)`,
         }}
         className={cn(
-          'w-full cursor-pointer appearance-none rounded-full outline-none',
+          'w-full min-w-0 cursor-pointer appearance-none rounded-full outline-none',
           'disabled:pointer-events-none disabled:opacity-40',
           '[&::-webkit-slider-thumb]:appearance-none',
           // A thumb a finger can find without covering the value it sets.
@@ -105,6 +104,33 @@ export function Slider({
           'hover:[&::-webkit-slider-thumb]:scale-110 active:[&::-webkit-slider-thumb]:scale-115',
         )}
       />
+  );
+
+  // The current value is always shown -- a slider whose position means
+  // nothing is not a control, it is a guess. The inline label is optional
+  // because the title often lives in the surrounding settings row.
+  if (inline) {
+    return (
+      <div className={cn('flex items-center gap-4', className)}>
+        {input}
+        {valueText}
+      </div>
+    );
+  }
+
+  return (
+    <div className={cn('flex flex-col gap-2', className)}>
+      <div className="flex items-baseline justify-between gap-3">
+        {label ? (
+          <label htmlFor={id} className="text-[12.5px] font-medium text-fg-muted">
+            {label}
+          </label>
+        ) : (
+          <span aria-hidden="true" />
+        )}
+        {valueText}
+      </div>
+      {input}
     </div>
   );
 }
