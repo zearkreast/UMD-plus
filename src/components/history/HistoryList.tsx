@@ -243,12 +243,20 @@ export function HistoryList({ onGoHome }: { onGoHome: () => void }) {
       {/* Shown once there is a history to narrow down, and kept while a
           filter is what emptied the list -- or there would be no way back. */}
       {(total > 0 || filtered) && (
-        <div className="mb-4 flex flex-wrap items-center gap-2">
+        // Wrapped on a phone, the kinds shrink to their labels and the menus
+        // drift to the right edge, so there they stack at full width.
+        <div
+          className={cn(
+            'mb-4 flex gap-2',
+            IS_MOBILE ? 'flex-col gap-3' : 'flex-wrap items-center',
+          )}
+        >
           <Segmented
             size="sm"
             label={t('history.kind')}
             value={kind}
             onChange={setKind}
+            className={IS_MOBILE ? 'w-full' : undefined}
             options={[
               { value: 'all', label: t('history.kindAll') },
               { value: 'video', label: t('convert.kind.video') },
@@ -256,9 +264,9 @@ export function HistoryList({ onGoHome }: { onGoHome: () => void }) {
               { value: 'image', label: t('convert.kind.image') },
             ]}
           />
-          <div className="ml-auto flex items-center gap-2">
+          <div className={cn('flex items-center gap-2', !IS_MOBILE && 'ml-auto')}>
             {platforms.length > 1 && (
-              <div className="w-[150px]">
+              <div className={IS_MOBILE ? 'min-w-0 flex-1' : 'w-[150px]'}>
                 <Dropdown
                   label={t('history.site')}
                   value={platform}
@@ -270,7 +278,7 @@ export function HistoryList({ onGoHome }: { onGoHome: () => void }) {
                 />
               </div>
             )}
-            <div className="w-[130px]">
+            <div className={IS_MOBILE ? 'min-w-0 flex-1' : 'w-[130px]'}>
               <Dropdown
                 label={t('history.order')}
                 value={order}

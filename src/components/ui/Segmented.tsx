@@ -56,7 +56,7 @@ export function Segmented<T extends string>({
               disabled={option.disabled}
               onClick={() => onChange(option.value)}
               className={cn(
-                'relative flex flex-1 items-center justify-center gap-1.5 rounded-[8px] font-medium',
+                'relative flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-[8px] font-medium',
                 'transition-colors duration-150 ease-out-quint',
                 'disabled:pointer-events-none disabled:opacity-40',
                 IS_MOBILE

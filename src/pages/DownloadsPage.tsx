@@ -6,7 +6,7 @@ import {
   useReducedMotionConfig,
 } from 'motion/react';
 import { Clock, Download, FolderOpen, GripVertical, Pause, Play } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { create } from 'zustand';
 
 import { DownloadCard } from '@/components/downloads/DownloadCard';
@@ -547,7 +547,19 @@ function QueueSummary({
           )}
         </span>
         <div className="min-w-0 flex-1">
-          <div className="truncate text-[13.5px] font-semibold text-fg">{parts.join(' · ')}</div>
+          {/* On a phone it wraps between the counts rather than cutting the
+              last one off mid-word. */}
+          <div className={cn('text-[13.5px] font-semibold text-fg', IS_MOBILE ? 'leading-snug' : 'truncate')}>
+            {parts.map((part, index) => (
+              <Fragment key={index}>
+                {index > 0 && ' '}
+                <span className={IS_MOBILE ? 'whitespace-nowrap' : undefined}>
+                  {index > 0 && '· '}
+                  {part}
+                </span>
+              </Fragment>
+            ))}
+          </div>
           <div className="tabular mt-0.5 flex gap-3 text-[12.5px] text-fg-muted">
             {running && activity.speedBps > 0 ? (
               <>
