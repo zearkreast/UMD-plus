@@ -403,11 +403,12 @@ export const en = {
   'settings.resumeOnLaunch': 'Carry on with the queue at launch',
   'settings.resumeOnLaunchHint':
     'Downloads that were running or waiting continue by themselves when the app opens. Off, they come back paused.',
-  'settings.quickDownload': 'One-click download',
+  'settings.quickDownload': 'Download what the extension sends straight away',
+  'settings.quickDownloadMobile': 'Download shared links straight away',
   'settings.quickDownloadHint':
-    'Every video sent from the browser extension goes into the queue with the default quality and format, without opening on Home.',
+    'Every video sent from the browser extension goes into the queue with the default quality and format, without opening on Home. Links pasted on Home are not affected.',
   'settings.quickDownloadHintMobile':
-    'A link shared from another app goes into the queue with the default quality and format, without opening on Home.',
+    'A link sent from another app with Share goes into the queue with the default quality and format, without opening on Home. Links pasted on Home are not affected.',
   'settings.subscriptions': 'Subscriptions',
   'settings.subscriptionInterval': 'How often to check',
   'settings.subscriptionIntervalHint': 'Checked while the app is open or in the tray. A check missed while it was closed is made when it opens.',

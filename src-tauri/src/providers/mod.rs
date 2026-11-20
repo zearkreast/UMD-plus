@@ -169,6 +169,11 @@ pub async fn analyze_with_source(
         Err(err) => log_warn!("providers", "photo reader failed for {}: {err}", info.host),
     }
 
+    // Discovery runs in the background at launch, and a link shared to the
+    // phone can start the app and be queued before it has finished.
+    if tools::engine_path().is_none() {
+        tools::discovered(settings).await;
+    }
     let engine_available = tools::engine_path().is_some();
     let mut engine_error: Option<AppError> = None;
 
