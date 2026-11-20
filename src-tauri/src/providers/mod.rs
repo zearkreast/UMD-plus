@@ -18,6 +18,7 @@ pub mod detect;
 pub mod direct;
 pub mod engine;
 pub mod generic;
+pub mod instagram;
 pub mod photos;
 pub mod spotify;
 pub mod words;
@@ -110,8 +111,9 @@ impl MediaProvider for GenericProvider {
 }
 
 /// Resolution order, matching the documented provider priority:
-///   0. a service that encrypts its streams, refused at once, and a song
-///      shared from Spotify, whose recording is found elsewhere
+///   0. a service that encrypts its streams, refused at once, a song shared
+///      from Spotify, whose recording is found elsewhere, and an Instagram
+///      profile, whose engine reader is broken
 ///   1. a direct media file, which needs no extraction at all
 ///   2. a photo post the engine cannot read (X, Reddit, TikTok photo mode)
 ///   3. the engine, which covers the named platforms and many more
@@ -119,6 +121,16 @@ impl MediaProvider for GenericProvider {
 ///   5. unsupported
 pub async fn analyze(url: &str, settings: &Settings) -> AppResult<MediaMetadata> {
     analyze_with_source(url, settings, None).await
+}
+
+/// [`analyze`] for a subscription check, which only looks for what is new: an
+/// Instagram profile is read to its newest page alone, one request, rather
+/// than paged back through every six hours.
+pub async fn analyze_newest(url: &str, settings: &Settings) -> AppResult<MediaMetadata> {
+    if let Some(metadata) = instagram::analyze(url, settings, instagram::Depth::Newest).await? {
+        return Ok(metadata);
+    }
+    analyze(url, settings).await
 }
 
 /// [`analyze`], for a link the browser extension handed over with the page and
@@ -137,6 +149,9 @@ pub async fn analyze_with_source(
         return Err(AppError::Protected(service.to_string()));
     }
     if let Some(metadata) = spotify::analyze(url, settings).await? {
+        return Ok(metadata);
+    }
+    if let Some(metadata) = instagram::analyze(url, settings, instagram::Depth::Full).await? {
         return Ok(metadata);
     }
 
@@ -169,6 +184,11 @@ pub async fn analyze_with_source(
         Err(err) => log_warn!("providers", "photo reader failed for {}: {err}", info.host),
     }
 
+    // Discovery runs in the background at launch, and a link shared to the
+    // phone can start the app and be queued before it has finished.
+    if tools::engine_path().is_none() {
+        tools::discovered(settings).await;
+    }
     let engine_available = tools::engine_path().is_some();
     let mut engine_error: Option<AppError> = None;
 

@@ -185,6 +185,7 @@ pub async fn execute(
     // for this request, and one made with them is no answer for the next
     // request of the same address that has none.
     let metadata = if let Some(source) = request.source.as_ref() {
+        providers::instagram::pace_download(&request.url, || control.interrupted()).await?;
         providers::analyze_with_source(&request.url, settings, Some(source)).await?
     } else {
         match providers::recent_analysis(&request.url, settings) {
@@ -193,6 +194,7 @@ pub async fn execute(
                 metadata
             }
             None => {
+                providers::instagram::pace_download(&request.url, || control.interrupted()).await?;
                 let metadata = providers::analyze(&request.url, settings).await?;
                 // The other items of a gallery are queued behind this one and
                 // can share it, rather than each asking the platform again.

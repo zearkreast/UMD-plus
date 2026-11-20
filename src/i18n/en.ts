@@ -63,6 +63,12 @@ export const en = {
   'preview.stale': 'The link in the field has changed. Analyze it to see what it offers.',
   'preview.warningGeneric':
     'No provider recognised this site, so this is the media the page itself advertises. It may not be the item you meant.',
+  'preview.warningInstagramSignIn':
+    'Only the newest posts are listed. For all of them, open Instagram in the browser, turn on "Session on other sites" in the extension, press Download, then analyze again.',
+  'preview.warningInstagramPartial':
+    'Instagram is read slowly and only so far, so your account is not restricted; the oldest posts are not listed. You can analyze again in a few hours.',
+  'preview.warningInstagramPaused':
+    'Instagram is being left alone for a while, so the list stopped early. For your account\'s sake, wait a few hours and try again.',
 
   'options.quality': 'Quality',
   'options.format': 'Format',
@@ -403,11 +409,12 @@ export const en = {
   'settings.resumeOnLaunch': 'Carry on with the queue at launch',
   'settings.resumeOnLaunchHint':
     'Downloads that were running or waiting continue by themselves when the app opens. Off, they come back paused.',
-  'settings.quickDownload': 'One-click download',
+  'settings.quickDownload': 'Download what the extension sends straight away',
+  'settings.quickDownloadMobile': 'Download shared links straight away',
   'settings.quickDownloadHint':
-    'Every video sent from the browser extension goes into the queue with the default quality and format, without opening on Home.',
+    'Every video sent from the browser extension goes into the queue with the default quality and format, without opening on Home. Links pasted on Home are not affected.',
   'settings.quickDownloadHintMobile':
-    'A link shared from another app goes into the queue with the default quality and format, without opening on Home.',
+    'A link sent from another app with Share goes into the queue with the default quality and format, without opening on Home. Links pasted on Home are not affected.',
   'settings.subscriptions': 'Subscriptions',
   'settings.subscriptionInterval': 'How often to check',
   'settings.subscriptionIntervalHint': 'Checked while the app is open or in the tray. A check missed while it was closed is made when it opens.',

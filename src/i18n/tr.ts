@@ -58,6 +58,12 @@ export const tr: Record<TranslationKey, string> = {
   'preview.stale': 'Alandaki bağlantı değişti. Neler sunduğunu görmek için analiz et.',
   'preview.warningGeneric':
     'Bu site tanınmadı; gösterilen, sayfanın kendi öne çıkardığı medya. Aradığın bu olmayabilir.',
+  'preview.warningInstagramSignIn':
+    'Yalnızca en yeni gönderiler listelendi. Hepsi için tarayıcıda Instagram açıkken uzantıda "Diğer sitelerde oturum"u açıp İndir\'e bas, sonra yeniden analiz et.',
+  'preview.warningInstagramPartial':
+    'Hesabının kısıtlanmaması için Instagram yavaş ve sınırlı okunuyor; en eski gönderiler listelenmedi. Birkaç saat sonra yeniden analiz edebilirsin.',
+  'preview.warningInstagramPaused':
+    'Instagram bir süre rahat bırakılıyor, bu yüzden liste yarıda kaldı. Hesabın için birkaç saat bekleyip yeniden dene.',
 
   'options.quality': 'Kalite',
   'options.format': 'Format',
@@ -395,11 +401,12 @@ export const tr: Record<TranslationKey, string> = {
   'settings.resumeOnLaunch': 'Açılışta kuyruğu sürdür',
   'settings.resumeOnLaunchHint':
     'Uygulama açılınca yarım kalan ve bekleyen indirmeler kendiliğinden devam eder. Kapalıyken duraklatılmış gelirler.',
-  'settings.quickDownload': 'Tek tıkla indir',
+  'settings.quickDownload': 'Uzantıdan gönderileni doğrudan indir',
+  'settings.quickDownloadMobile': 'Paylaşılan bağlantıyı doğrudan indir',
   'settings.quickDownloadHint':
-    'Tarayıcı uzantısından gönderilen her video, ana sayfada açılmadan varsayılan kalite ve biçimle kuyruğa girer.',
+    'Tarayıcı uzantısından gönderilen her video, ana sayfada açılmadan varsayılan kalite ve biçimle kuyruğa girer. Ana sayfaya yapıştırdığın bağlantılar bundan etkilenmez.',
   'settings.quickDownloadHintMobile':
-    'Başka bir uygulamadan paylaşılan bağlantı, ana sayfada açılmadan varsayılan kalite ve biçimle kuyruğa girer.',
+    'Başka bir uygulamadan Paylaş ile gönderilen bağlantı, ana sayfada açılmadan varsayılan kalite ve biçimle kuyruğa girer. Ana sayfaya yapıştırdığın bağlantılar bundan etkilenmez.',
   'settings.subscriptions': 'Abonelikler',
   'settings.subscriptionInterval': 'Denetim sıklığı',
   'settings.subscriptionIntervalHint': 'Uygulama açıkken ya da tepsideyken denetlenir. Kapalıyken kaçırılan denetim, uygulama açılınca yapılır.',

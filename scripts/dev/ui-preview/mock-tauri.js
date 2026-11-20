@@ -34,6 +34,8 @@
  *   tiktok.com/@a/video/1         a video whose sharpest picture has no sound and
  *                                 borrows it from the 720p rendition
  *   instagram.com/p/x/            a carousel of two videos and two photos
+ *   instagram.com/gezgin.ada/     an account's videos, read without a session
+ *                                 (add "partial" for a list cut short)
  *   ...watch?v=anime1             an episode with its original track and dubs
  *   anything with "fail"          an analysis that fails
  *   itzmav_ or agegate            a TikTok post that needs a sign-in, from
@@ -576,6 +578,26 @@
       artists: 'Trail Notes',
       durationSec: 540 + index * 37,
       url: `https://www.youtube.com/watch?v=episode${index + 1}`,
+    })),
+  });
+
+  // An account's videos, read without a session: its newest page alone.
+  const instagramProfile = (url) => ({
+    ...youtubeList(url),
+    platform: 'instagram',
+    platformLabel: 'Instagram',
+    providerId: 'instagram',
+    canonicalUrl: 'https://www.instagram.com/gezgin.ada/',
+    title: 'Gezgin Ada (@gezgin.ada)',
+    creator: 'gezgin.ada',
+    entryCount: 9,
+    warnings: [url.includes('partial') ? 'instagramPartial' : 'instagramSignIn'],
+    tracks: Array.from({ length: 9 }, (_, index) => ({
+      position: index + 1,
+      title: `Kapadokya'da bir sabah, bölüm ${index + 1}`,
+      artists: 'gezgin.ada',
+      durationSec: 12 + index * 7,
+      url: `https://www.instagram.com/reel/R${index + 1}/`,
     })),
   });
 
@@ -1204,6 +1226,7 @@
       }
       if (onSite(url, 'open.spotify.com')) return spotifyAlbum(url);
       if (url.includes('/playlist?list=')) return youtubeList(url);
+      if (/instagram\.com\/gezgin\.ada\/?/.test(url)) return instagramProfile(url);
       if (url.includes('watch?v=listed')) {
         return { ...metadataFor(url), listUrl: 'https://www.youtube.com/playlist?list=PLpreview' };
       }

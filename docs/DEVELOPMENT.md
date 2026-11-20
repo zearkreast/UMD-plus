@@ -69,9 +69,20 @@ packaging/arch/            The Arch Linux package
 Every source adapter implements the same three-method `MediaProvider` trait
 (`id`, `can_handle`, `analyze`) in `src-tauri/src/providers/mod.rs`. Adding a
 platform means adding a module and a branch in `analyze`. Resolution order is:
-a service that encrypts its streams (refused at once) or a song shared from
-Spotify → a direct media file → a photo post → the engine → the generic page
-reader → unsupported.
+a service that encrypts its streams (refused at once), a song shared from
+Spotify or an Instagram profile → a direct media file → a photo post → the
+engine → the generic page reader → unsupported.
+
+An Instagram profile is read by `providers/instagram.rs`, because the engine's
+reader for profiles is broken. It lists the account's videos from the
+addresses instagram.com itself loads, paging back with the session the
+extension lends; without one, only the newest page. Every one of those
+requests is made with the user's account, so the reader is slow on purpose:
+one reading at a time, 8-13 seconds between pages, at most 15 pages, 30
+requests an hour and 120 a day, and three hours of silence after any refusal.
+Downloads of Instagram posts wait their turn too, 20-30 seconds apart and at
+most 40 an hour and 200 a day. A subscription check reads the newest page
+alone.
 
 The engine is a video tool, and photo posts are where that shows. It is run
 with `--ignore-no-formats-error`, so a post with pictures and no stream is
