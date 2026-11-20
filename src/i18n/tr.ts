@@ -58,6 +58,12 @@ export const tr: Record<TranslationKey, string> = {
   'preview.stale': 'Alandaki bağlantı değişti. Neler sunduğunu görmek için analiz et.',
   'preview.warningGeneric':
     'Bu site tanınmadı; gösterilen, sayfanın kendi öne çıkardığı medya. Aradığın bu olmayabilir.',
+  'preview.warningInstagramSignIn':
+    'Yalnızca en yeni gönderiler listelendi. Hepsi için tarayıcıda Instagram açıkken uzantıda "Diğer sitelerde oturum"u açıp İndir\'e bas, sonra yeniden analiz et.',
+  'preview.warningInstagramPartial':
+    'Hesabının kısıtlanmaması için Instagram yavaş ve sınırlı okunuyor; en eski gönderiler listelenmedi. Birkaç saat sonra yeniden analiz edebilirsin.',
+  'preview.warningInstagramPaused':
+    'Instagram bir süre rahat bırakılıyor, bu yüzden liste yarıda kaldı. Hesabın için birkaç saat bekleyip yeniden dene.',
 
   'options.quality': 'Kalite',
   'options.format': 'Format',

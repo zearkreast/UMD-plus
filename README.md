@@ -117,6 +117,7 @@ add-on from `about:debugging`, until Firefox closes.
 - **Subscriptions** to channels and lists: new videos are checked for every few hours while the app runs, and queued with the options you chose.
 - **Several links at once**: paste them together and queue them all, or send videos from the browser straight to the queue.
 - **Photos** too: Instagram posts and carousels, X, TikTok photo posts, Reddit galleries and Pinterest pins, at full size.
+- **An Instagram account's videos** from its profile link, to pick from or subscribe to. All of them with the browser's Instagram session; the newest without. Read and downloaded slowly on purpose, so the account is not restricted.
 - **Fast**: large files are split over several connections, and the queue can be paused, resumed and retried without losing progress.
 - **Subtitles** beside the video or inside it, and the file's **title, creator, chapters and cover** written into it.
 - **Sponsored parts cut out** of YouTube videos using SponsorBlock, and a video **split by its chapters** into separate files (both optional).

@@ -3,10 +3,17 @@ import { Eye, Heart, ImageOff, Images, ListVideo, Music, Radio } from 'lucide-re
 import { InlineNotice } from '@/components/ui/InlineNotice';
 import { PlatformBadge } from '@/components/ui/PlatformBadge';
 import { useThumbnail } from '@/hooks/useThumbnail';
-import { useTranslation } from '@/i18n';
+import { useTranslation, type TranslationKey } from '@/i18n';
 import { cn } from '@/lib/cn';
 import { formatCount, formatDuration, formatUploadDate } from '@/lib/format';
 import type { MediaMetadata } from '@/types';
+
+/** The reader's warnings, as `providers/instagram.rs` names them. */
+const INSTAGRAM_WARNINGS: [string, TranslationKey][] = [
+  ['instagramSignIn', 'preview.warningInstagramSignIn'],
+  ['instagramPartial', 'preview.warningInstagramPartial'],
+  ['instagramPaused', 'preview.warningInstagramPaused'],
+];
 
 /** A fact laid over the thumbnail: the running time, "live", the item count.
  *  Also the running time on a tile of the grid a carousel is picked from. */
@@ -122,12 +129,17 @@ export function MediaPreviewCard({ metadata }: { metadata: MediaMetadata }) {
           {uploaded && <span>{uploaded}</span>}
         </div>
 
-        {/* Notes the source itself could not tell us -- currently only that no
-            provider recognised the site, so the result is a best-effort read of
-            the page's own tags. */}
+        {/* Notes the source itself could not tell us: that no provider
+            recognised the site, so the result is a best-effort read of the
+            page's own tags, or how far an Instagram account was read. */}
         {metadata.warnings.includes('generic') && (
           <InlineNotice className="mt-3">{t('preview.warningGeneric')}</InlineNotice>
         )}
+        {INSTAGRAM_WARNINGS.filter(([code]) => metadata.warnings.includes(code)).map(([code, key]) => (
+          <InlineNotice key={code} className="mt-3">
+            {t(key)}
+          </InlineNotice>
+        ))}
       </div>
     </article>
   );

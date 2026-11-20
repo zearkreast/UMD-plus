@@ -411,7 +411,7 @@ impl Subscriptions {
 
     async fn read_one(&self, subscription: &Subscription, settings: &Settings) {
         let now = util::now_ms();
-        let list = match providers::analyze(&subscription.url, settings).await {
+        let list = match providers::analyze_newest(&subscription.url, settings).await {
             Ok(list) => list,
             Err(err) => {
                 log_warn!("subscriptions", "{} could not be read: {err}", subscription.url);
