@@ -46,7 +46,8 @@ src-tauri/                 Rust core and the native projects
   src/media/               Everything FFmpeg: merging, converting, the editor's
                            export, range fetches, timeline waveforms and frames
   src/bridge/              The browser link: native messaging host, handoffs,
-                           lent sessions (src/bin/ud-bridge.rs is the host)
+                           lent sessions (src/bin/ud-bridge.rs is the host),
+                           and Send to phone (transfer.rs, transfer_net.rs)
   src/tools.rs             Finding and installing yt-dlp, FFmpeg and Deno
   src/updater.rs           Finding and installing a newer build
   src/db.rs, cache.rs      SQLite (settings, history, durable queue), thumbnails
@@ -126,6 +127,22 @@ handful of `IS_MOBILE` branches in the front end.
   the user just saw is reused when Download is pressed rather than run again
   -- for YouTube that is a Python start and a JavaScript challenge solved
   twice -- and yt-dlp reports progress twice a second instead of per block.
+- **Sessions.** There is no extension on a phone, so its sessions come from
+  the desktop. Settings › Connection on the desktop offers Send to phone: the
+  user picks the sessions to send and the app opens a listener on the local
+  network for two minutes, showing a QR code with its addresses, the port, a
+  one-time token and a fresh 256-bit key -- no cookies. The phone's Scan from
+  computer (`tauri-plugin-barcode-scanner`) reads it and asks the listener
+  for the token; the desktop answers once, with the chosen jars sealed with
+  ChaCha20-Poly1305 under that key, and closes. The key only ever travels
+  through the camera, so the traffic is worthless to anyone else on the
+  network, and the phone refuses an expired code, a code it already took and
+  an answer that does not repeat the code's token and expiry inside the seal.
+  There is no relay: a phone on another network gets no answer, which the
+  screen says. What arrives is stored through the same path as a push from
+  the browser (`store::receive`) and lent and removed exactly as on the
+  desktop, sealed at rest with a per-install key in place of DPAPI, in a
+  folder Android's backup rules leave out.
 - **Updates.** A build records the commit it came from (`build.rs`). Releases
   are unversioned, so `src-tauri/src/updater.rs` compares that commit with the
   one the `latest` tag points at; a difference means a newer build. The APK is
@@ -284,7 +301,9 @@ catches up.
   them.
 - `src-tauri/src/**` — unit tests next to the code they cover: URL
   classification, format selection, file naming, speed smoothing, pause/cancel
-  signalling, engine output parsing, FFmpeg argument construction.
+  signalling, engine output parsing, FFmpeg argument construction, and Send to
+  phone's codes, tokens, expiry and sealing (`bridge/transfer.rs`), with its
+  listener answering a real request once (`bridge/transfer_net.rs`).
 - `src-tauri/tests/resume.rs` — chunking and resume, against a purpose-built
   local HTTP server. Hermetic: no network, and the server's range behaviour is
   a controlled variable rather than a guess about some CDN.
@@ -366,7 +385,9 @@ cache/         thumbnails, bounded by the configured cache limit
 temp/          in-flight downloads; a finished file is moved out
 logs/          app.log and error.log, rotated by size
 bridge/        the browser link's state and the sessions it lends, sealed
-               with DPAPI (Windows only)
+               with DPAPI on Windows; on Android the sessions taken from the
+               computer, sealed with a key kept beside them (seal.key) and
+               left out of backups
 ```
 
 Downloads themselves go to your own Downloads folder by default.

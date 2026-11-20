@@ -9,6 +9,7 @@ import {
   Copy,
   ExternalLink,
   FolderOpen,
+  Smartphone,
   TriangleAlert,
   type LucideIcon,
 } from 'lucide-react';
@@ -31,6 +32,8 @@ import type {
   ExtensionFolder,
   Settings,
 } from '@/types';
+import { SendToPhoneModal } from './SendToPhoneModal';
+import { sendableSites } from './phoneTransfer';
 
 /**
  * How often the section re-reads the link while it is on screen.
@@ -57,9 +60,6 @@ export function useBridgeStatus(
   const [status, setStatus] = useState<BridgeStatus | null>(initial);
 
   useEffect(() => {
-    // There is no bridge on a phone, and no command behind these names either.
-    if (IS_MOBILE) return;
-
     let active = true;
     const read = () => {
       ipc
@@ -119,7 +119,7 @@ export function phaseOf(status: BridgeStatus): LinkPhase {
 }
 
 /** What each site's line says about its session. */
-const SITE_STATE: Record<BridgeSessionState, TranslationKey> = {
+export const SITE_STATE: Record<BridgeSessionState, TranslationKey> = {
   fresh: 'settings.linkSiteFresh',
   stale: 'settings.linkSiteStale',
   none: 'settings.linkSiteNone',
@@ -206,8 +206,8 @@ function relativeTime(epochSeconds: number, locale: string): string {
 }
 
 // The sizes a `SettingRow` sets its two lines in, so the rows of a group agree.
-const TITLE_SIZE = IS_MOBILE ? 'text-[15px]' : 'text-[13.5px]';
-const BODY_SIZE = IS_MOBILE ? 'text-[13px]' : 'text-[12.5px]';
+export const TITLE_SIZE = IS_MOBILE ? 'text-[15px]' : 'text-[13.5px]';
+export const BODY_SIZE = IS_MOBILE ? 'text-[13px]' : 'text-[12.5px]';
 
 interface BrowserLinkCardProps {
   settings: Settings;
@@ -225,6 +225,7 @@ export function BrowserLinkCard({ settings, update, initialStatus = null }: Brow
   const [working, setWorking] = useState(false);
   const [problem, setProblem] = useState<TranslationKey | null>(null);
   const [copied, markCopied] = useMomentary();
+  const [sending, setSending] = useState(false);
 
   // Disconnect makes the backend emit `bridge://changed`, so the card is
   // refreshed by the same path a push from the browser takes; there is no
@@ -419,6 +420,16 @@ export function BrowserLinkCard({ settings, update, initialStatus = null }: Brow
                       pulled out by their padding and the first label starts
                       where the text above it does. */}
                   <div className="-ml-3 mt-3 flex flex-wrap items-center gap-2">
+                    {sendableSites(status).length > 0 && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        icon={<Smartphone size={13} />}
+                        onClick={() => setSending(true)}
+                      >
+                        {t('transfer.send')}
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       variant="ghost"
@@ -450,6 +461,11 @@ export function BrowserLinkCard({ settings, update, initialStatus = null }: Brow
                     </InlineNotice>
                   )}
 
+                  <SendToPhoneModal
+                    open={sending}
+                    onClose={() => setSending(false)}
+                    status={status}
+                  />
                 </div>
               )}
             </motion.div>
@@ -491,7 +507,7 @@ export function BrowserLinkCard({ settings, update, initialStatus = null }: Brow
  * remove it. Removing keeps the browser connected; the extension turns that
  * site's switch off when it next hears from the app.
  */
-function SiteRow({
+export function SiteRow({
   name,
   fresh,
   label,
@@ -544,7 +560,7 @@ function SiteState({ fresh, children }: { fresh: boolean; children: React.ReactN
 }
 
 /** A row that opens onto an explanation, for what is true but not news. */
-function Disclosure({ title, children }: { title: React.ReactNode; children: React.ReactNode }) {
+export function Disclosure({ title, children }: { title: React.ReactNode; children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   return (
     <div>

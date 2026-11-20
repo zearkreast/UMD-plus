@@ -184,7 +184,10 @@ on (it is off until you turn it on), the id of each YouTube video downloaded
 is sent to [SponsorBlock](https://sponsor.ajay.app) to ask which parts to cut.
 
 The browser extension sends nothing off your computer. What it reads is listed
-in [`extension/PRIVACY.md`](extension/PRIVACY.md).
+in [`extension/PRIVACY.md`](extension/PRIVACY.md). Send to phone moves the
+sessions it lent to the phone app only when you scan its code, straight over
+your own network and encrypted with a key that is only in that code; nothing
+goes through the internet or any server.
 
 ## For developers
 

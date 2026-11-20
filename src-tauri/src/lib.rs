@@ -73,7 +73,9 @@ pub fn run() {
 
     #[cfg(target_os = "android")]
     {
-        builder = builder.plugin(android::plugin());
+        builder = builder
+            .plugin(android::plugin())
+            .plugin(tauri_plugin_barcode_scanner::init());
     }
 
     let builder = builder
@@ -262,6 +264,10 @@ pub fn run() {
             commands::bridge_disconnect,
             commands::bridge_forget_session,
             commands::bridge_diagnostics,
+            commands::phone_transfer_start,
+            commands::phone_transfer_cancel,
+            commands::phone_transfer_status,
+            commands::phone_transfer_receive,
             commands::take_handoffs,
             commands::get_tools,
             commands::refresh_tools,

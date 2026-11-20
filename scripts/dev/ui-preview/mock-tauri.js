@@ -19,6 +19,12 @@
  *   ?other=fresh        İndir has just lent instagram.com's sign-in through
  *                       the extension's Other sites switch (default: none)
  *   ?raf=timers         run animation frames off timers (see below)
+ *   ?send=auto          Send to phone's code is scanned five seconds after it
+ *                       is shown (default: it waits out its two minutes)
+ *   ?phone=received     the phone already holds sessions from the computer
+ *   ?scan=expired       the phone's next scan is refused that way (or `used`,
+ *                       `unreachable`, `invalid`, `cancel`; default: received)
+ *   ?camera=denied      the phone may not use the camera
  *
  * Links, pasted on Home:
  *   open.spotify.com/...          an album of eight songs to pick from
@@ -39,6 +45,8 @@
  * `__UD_MOCK__.clipboard` the last text the app wrote to the clipboard.
  * `__UD_MOCK__.files` is how the next open, reveal or share goes: 'ok',
  * 'missing' or 'fail', as `?files=` sets it at load.
+ * `__UD_MOCK__.transfer(phase)` moves Send to phone's listener on: 'sending',
+ * 'sent', 'expired' or 'failed'.
  */
 (() => {
   const params = new URLSearchParams(location.search);
@@ -802,6 +810,40 @@
   // Repair is pressed in Settings.
   const bridge = { registered: !params.has('unregistered') };
 
+  // Send to phone, both ends.
+  const transfer = {
+    phase: null,
+    timers: [],
+    scan: params.get('scan') ?? 'received',
+    phoneSites: new Set(params.get('phone') === 'received' ? ['youtube', 'tiktok', 'x'] : []),
+  };
+  const moveTransfer = (phase) => {
+    transfer.phase = phase;
+    emit('transfer://changed', null);
+  };
+  const stopTransfer = () => {
+    transfer.timers.forEach(clearTimeout);
+    transfer.timers = [];
+  };
+
+  /** Looks like a QR code, scans as nothing. */
+  const fakeQr = () => {
+    const n = 29;
+    let seed = 7;
+    const random = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const cells = [];
+    const finder = (x, y) =>
+      `<rect x="${x}" y="${y}" width="7" height="7"/><rect x="${x + 1}" y="${y + 1}" width="5" height="5" fill="#fff"/><rect x="${x + 2}" y="${y + 2}" width="3" height="3"/>`;
+    for (let y = 0; y < n; y++) {
+      for (let x = 0; x < n; x++) {
+        const inFinder = (x < 8 && y < 8) || (x > n - 9 && y < 8) || (x < 8 && y > n - 9);
+        if (!inFinder && random() > 0.52) cells.push(`<rect x="${x}" y="${y}" width="1" height="1"/>`);
+      }
+    }
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-4 -4 ${n + 8} ${n + 8}" shape-rendering="crispEdges"><rect x="-4" y="-4" width="${n + 8}" height="${n + 8}" fill="#fff"/>${finder(0, 0)}${finder(n - 7, 0)}${finder(0, n - 7)}${cells.join('')}</svg>`;
+    return `data:image/svg+xml;base64,${btoa(svg)}`;
+  };
+
   // -- events ----------------------------------------------------------------
 
   const listeners = new Map();
@@ -1029,7 +1071,62 @@
       return { tool, installed, latest: installed, upToDate: true };
     },
 
-    bridge_status: () => ({
+    bridge_status: () => {
+      if (platform === 'android') {
+        const held = (site) => (transfer.phoneSites.has(site) ? 'fresh' : 'none');
+        return {
+          ...commands.bridge_status_desktop(),
+          supported: false,
+          enabled: false,
+          registered: false,
+          connected: false,
+          browser: null,
+          profileLabel: null,
+          extensionVersion: null,
+          hostPath: null,
+          session: held('youtube'),
+          tiktokSession: held('tiktok'),
+          redditSession: held('reddit'),
+          xSession: held('x'),
+          otherSession: 'none',
+          otherDomain: null,
+        };
+      }
+      return commands.bridge_status_desktop();
+    },
+    phone_transfer_start: async ({ sites }) => {
+      await wait(300);
+      stopTransfer();
+      transfer.phase = 'waiting';
+      if (params.get('send') === 'auto') {
+        transfer.timers.push(setTimeout(() => moveTransfer('sending'), 5000));
+        transfer.timers.push(setTimeout(() => moveTransfer('sent'), 6200));
+      }
+      transfer.timers.push(setTimeout(() => moveTransfer('expired'), 120_000));
+      return {
+        outcome: 'ready',
+        qr: fakeQr(),
+        addresses: ['192.168.1.20'],
+        port: 51734,
+        expiresAt: Math.floor(Date.now() / 1000) + 120,
+        sites,
+      };
+    },
+    phone_transfer_cancel: () => {
+      stopTransfer();
+      if (transfer.phase === 'waiting') transfer.phase = 'cancelled';
+      return null;
+    },
+    phone_transfer_status: () => transfer.phase,
+    phone_transfer_receive: async () => {
+      await wait(900);
+      if (transfer.scan !== 'received') return { outcome: 'refused', reason: transfer.scan };
+      ['youtube', 'tiktok', 'x'].forEach((site) => transfer.phoneSites.add(site));
+      emit('bridge://changed', null);
+      return { outcome: 'received', sites: ['youtube', 'tiktok', 'x'] };
+    },
+    // Not a real command; the phone's answer builds on it.
+    bridge_status_desktop: () => ({
       supported: platform === 'windows',
       storeListed: true,
       enabled: true,
@@ -1068,6 +1165,7 @@
     }),
     open_extension_dir: () => null,
     bridge_forget_session: ({ site }) => {
+      transfer.phoneSites.delete(site);
       bridge.forgotten = bridge.forgotten ?? new Set();
       bridge.forgotten.add(site);
       emit('bridge://changed', null);
@@ -1686,6 +1784,17 @@
     if (cmd === 'plugin:autostart|is_enabled') return false;
     if (cmd === 'plugin:app|version') return '1.0.0';
     if (cmd === 'plugin:notification|is_permission_granted') return true;
+    if (
+      cmd === 'plugin:barcode-scanner|check_permissions' ||
+      cmd === 'plugin:barcode-scanner|request_permissions'
+    ) {
+      return { camera: params.get('camera') === 'denied' ? 'denied' : 'granted' };
+    }
+    if (cmd === 'plugin:barcode-scanner|scan') {
+      await wait(500);
+      if (transfer.scan === 'cancel') throw 'cancelled';
+      return { content: 'umdplus://transfer?v=1&a=192.168.1.20&p=51734&t=x&k=y&e=0', format: 'QR_CODE' };
+    }
     if (cmd.startsWith('plugin:')) return null;
 
     const handler = commands[cmd];
@@ -1765,6 +1874,7 @@
     emit,
     calls,
     settings,
+    transfer: moveTransfer,
     /** A press of İndir in the extension, with the sample changed by `item`. */
     handoff(item = {}) {
       inbox.push(handoffItem(item));

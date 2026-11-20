@@ -510,6 +510,61 @@ export const tr: Record<TranslationKey, string> = {
   'settings.extensionFolderFailed': 'Uzantı klasörü açılamadı',
   'settings.linkForgetSite': '{site} oturumunu kaldır',
   'settings.linkForgetFailed': 'Oturum kaldırılamadı',
+  'settings.connectionSummaryMobile': 'Bilgisayardan alınan oturumlar',
+  'transfer.send': 'Telefona aktar',
+  'transfer.sendTitle': 'Oturumları telefona aktar',
+  'transfer.chooseHint': 'Telefondaki UMD+ hangi oturumları alsın, seç.',
+  'transfer.sameNetwork':
+    'Telefon ve bu bilgisayar aynı Wi-Fi ağında olmalı. Oturumlar internete çıkmaz; doğrudan bu bilgisayardan telefona, şifreli olarak gider.',
+  'transfer.showCode': 'Kodu göster',
+  'transfer.codeAlt': 'Telefonun tarayacağı kod',
+  'transfer.scanHint':
+    "Telefonda UMD+'yı aç, Ayarlar › Bağlantı'da Bilgisayardan al'a dokun ve kamerayı bu koda tut.",
+  'transfer.expiresIn': '{time} boyunca, bir kez geçerli',
+  'transfer.addresses': 'Bu bilgisayar: {addresses}',
+  'transfer.firewallHint':
+    'Windows, UMD+ ağı kullanabilir mi diye sorarsa özel ağlar için izin ver.',
+  'transfer.sending': 'Gönderiliyor…',
+  'transfer.sent': 'Telefona gönderildi',
+  'transfer.sentHint': 'Telefonda Ayarlar › Bağlantı altında görünürler.',
+  'transfer.expired': 'Kodun süresi doldu',
+  'transfer.expiredHint': 'Hiçbir şey gönderilmedi. Yeniden denemek için yeni bir kod göster.',
+  'transfer.failed': 'Oturumlar gönderilemedi',
+  'transfer.failedHint':
+    'Telefonun bağlantısı koptu ya da ağdaki başka bir cihaz yanlış kodla sormayı sürdürdü. Yeniden denemek için yeni bir kod göster.',
+  'transfer.tryAgain': 'Yeni kod',
+  'transfer.noNetwork': 'Bu bilgisayar yerel bir ağa bağlı değil',
+  'transfer.noNetworkHint':
+    "Telefonunla aynı Wi-Fi'a ya da telefonunun erişim noktasına bağla, sonra yeniden dene.",
+  'transfer.nothingToSend': 'Gönderilecek oturum yok',
+  'transfer.startFailed': 'Kod gösterilemedi',
+  'transfer.phoneTitle': 'Bilgisayardaki oturumlar',
+  'transfer.phoneHint':
+    "Telefonda tarayıcı uzantısı yok. Bilgisayardaki UMD+'da oturumların varsa gizli, yaş sınırlı ve yalnızca giriş yapanlara açık gönderiler için onları bir QR koduyla buraya al.",
+  'transfer.scan': 'Bilgisayardan al',
+  'transfer.receiving': 'Alınıyor…',
+  'transfer.received': 'Alındı: {sites}',
+  'transfer.howTitle': 'Nasıl çalışır?',
+  'transfer.howHint':
+    "Bilgisayarda UMD+'yı aç, Ayarlar › Bağlantı'da Telefona aktar'a bas. Sonra burada Bilgisayardan al'a dokun ve ekrandaki kodu tara. Kod iki dakika boyunca, bir kez geçerlidir. Oturumlar bilgisayardan doğrudan bu telefona, şifreli olarak gelir ve yalnızca burada saklanır.",
+  'transfer.networkTitle': 'Aynı ağda değil misin?',
+  'transfer.networkHint':
+    "Kod yalnızca aynı yerel ağda çalışır; araya bizim bir sunucumuz girmez. Telefon mobil verideyse ya da misafir ağındaysa bilgisayarın bağlı olduğu Wi-Fi'a bağlan ya da bilgisayarı telefonun erişim noktasına bağla.",
+  'transfer.staleHint':
+    'Bir oturum, bilgisayar onu tarayıcıdan son aldıktan bir hafta sonra eskir. Tazesi için kodu yeniden tara.',
+  'transfer.cameraDenied':
+    "UMD+'nın kamerayı kullanma izni yok. Kodu taramak için uygulama ayarlarından izin ver.",
+  'transfer.openSettings': 'Ayarları aç',
+  'transfer.receiveFailed': 'Oturumlar alınamadı',
+  'transfer.refused.invalid':
+    "Bu bir UMD+ kodu değil. Bilgisayarda Telefona aktar'ın gösterdiği kodu tara.",
+  'transfer.refused.expired': 'Kodun süresi dolmuş. Bilgisayarda yenisini göster.',
+  'transfer.refused.used': 'Bu kod zaten kullanıldı. Bilgisayarda yenisini göster.',
+  'transfer.refused.unreachable':
+    'Bilgisayar yanıt vermedi. İkisinin de aynı Wi-Fi ağında olduğundan ve kodun hâlâ ekranda durduğundan emin ol.',
+  'transfer.refused.rejected': 'Bilgisayar kodu geri çevirdi. Yenisini göster ve yeniden tara.',
+  'transfer.refused.tampered': 'Gelen veri kodla eşleşmedi, bu yüzden atıldı.',
+  'transfer.refused.empty': 'Bilgisayar kullanılabilecek bir oturum göndermedi.',
   'settings.linkDisconnectFailed': 'Tarayıcı bağlantısı kesilemedi',
   'settings.linkCopyDiagnostics': 'Tanılamayı kopyala',
   'settings.linkDiagnosticsCopied': 'Tanılama kopyalandı',

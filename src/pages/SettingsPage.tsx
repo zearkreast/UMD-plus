@@ -16,6 +16,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { BrowserLinkCard, useBridgeStatus } from '@/components/settings/BrowserLinkCard';
+import { PhoneSessionsCard } from '@/components/settings/PhoneSessionsCard';
 import { HotkeyRecorder } from '@/components/settings/HotkeyRecorder';
 import { ToolCard } from '@/components/settings/ToolCard';
 import { Button } from '@/components/ui/Button';
@@ -84,7 +85,7 @@ const ALL_SECTIONS: {
   {
     id: 'connection',
     label: 'settings.connection',
-    summary: 'settings.connectionSummary',
+    summary: IS_MOBILE ? 'settings.connectionSummaryMobile' : 'settings.connectionSummary',
     icon: Link2,
   },
   {
@@ -174,9 +175,9 @@ export function SettingsPage({ settings, section: openSection, onSectionChange }
         // published listing decides what the section OFFERS, not whether it
         // exists: hiding it outright would also hide a link that is already
         // working, which is the state every install is in before the listing
-        // is approved.
+        // is approved. The phone's takes sessions from the desktop.
         if (candidate.id === 'connection') {
-          return !IS_MOBILE && link != null && link.supported;
+          return IS_MOBILE || (link != null && link.supported);
         }
         return true;
       }),
@@ -204,7 +205,8 @@ export function SettingsPage({ settings, section: openSection, onSectionChange }
     >
       {section === 'general' && <GeneralSection settings={settings} update={update} />}
       {section === 'downloads' && <DownloadsSection settings={settings} update={update} />}
-      {section === 'connection' && (
+      {section === 'connection' && IS_MOBILE && <PhoneSessionsCard initialStatus={link} />}
+      {section === 'connection' && !IS_MOBILE && (
         <BrowserLinkCard settings={settings} update={update} initialStatus={link} />
       )}
       {section === 'appearance' && <AppearanceSection settings={settings} update={update} />}
