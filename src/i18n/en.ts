@@ -63,6 +63,12 @@ export const en = {
   'preview.stale': 'The link in the field has changed. Analyze it to see what it offers.',
   'preview.warningGeneric':
     'No provider recognised this site, so this is the media the page itself advertises. It may not be the item you meant.',
+  'preview.warningInstagramSignIn':
+    'Only the newest posts are listed. For all of them, open Instagram in the browser, turn on "Session on other sites" in the extension, press Download, then analyze again.',
+  'preview.warningInstagramPartial':
+    'Instagram is read slowly and only so far, so your account is not restricted; the oldest posts are not listed. You can analyze again in a few hours.',
+  'preview.warningInstagramPaused':
+    'Instagram is being left alone for a while, so the list stopped early. For your account\'s sake, wait a few hours and try again.',
 
   'options.quality': 'Quality',
   'options.format': 'Format',

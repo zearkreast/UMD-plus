@@ -267,6 +267,21 @@ pub fn first_lease(settings: &Settings, url: &str, page_url: Option<&str>) -> Op
     }
 }
 
+/// The other-site session as a `Cookie` header for a request of the app's own
+/// to `url`, by the same rules as `other_lease`, and with only the cookies
+/// whose domain `url`'s host is under: the header goes to that host alone.
+pub fn other_cookie_header(settings: &Settings, url: &str) -> Option<String> {
+    let lease = other_lease(settings, url, None)?;
+    let host = reqwest::Url::parse(url).ok()?.host_str()?.to_ascii_lowercase();
+    let text = std::fs::read_to_string(lease.path()).ok()?;
+    let pairs: Vec<String> = cookies::read(&text)
+        .into_iter()
+        .filter(|cookie| protocol::under_domain(&host, cookie.domain.trim_start_matches('.')))
+        .map(|cookie| format!("{}={}", cookie.name, cookie.value))
+        .collect();
+    (!pairs.is_empty()).then(|| pairs.join("; "))
+}
+
 /// Remove `site`'s session at the user's word, from the Connection page. The
 /// binding stays. The popup turns that site's switch off when it next hears
 /// from the app, and nothing of the site's is stored meanwhile.
