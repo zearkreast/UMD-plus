@@ -9,6 +9,8 @@ import { BottomNav, PHONE_TABS } from '@/components/layout/BottomNav';
 import { NAV_ORDER, Sidebar, type Route } from '@/components/layout/Sidebar';
 import { Topbar } from '@/components/layout/Topbar';
 import { DesktopUpdater } from '@/components/updates/DesktopUpdater';
+import { TransferLinkPrompt } from '@/components/settings/TransferLinkPrompt';
+import { transferLinkIn, type TransferLink } from '@/components/settings/phoneTransfer';
 import { UpdatePrompt } from '@/components/updates/UpdatePrompt';
 import type { UrlInputHandle } from '@/components/home/UrlInput';
 import type { HomeRequest } from '@/pages/HomePage';
@@ -565,12 +567,21 @@ export function App() {
   // holds it until asked: once at start-up for the share that launched the
   // app, and again whenever it signals that another one came in.
   const settingsReady = settings != null;
+  const [transferLink, setTransferLink] = useState<TransferLink | null>(null);
   useEffect(() => {
     if (!IS_MOBILE || !settingsReady) return;
     const take = () => {
       void ipc
         .platformTakeSharedText()
         .then((text) => {
+          // A computer's Send to phone code, opened from the camera app.
+          const link = text ? transferLinkIn(text) : null;
+          if (link) {
+            setTransferLink(link);
+            setIntroReplay(false);
+            setIntroDone(true);
+            return;
+          }
           const url = text ? extractFirstUrl(text) : null;
           if (!url) return;
           const current = useSettingsStore.getState().settings;
@@ -945,6 +956,7 @@ export function App() {
           meanwhile would open unseen under it, and a Back meant for the film
           would put the update off instead. One found during a replay opens
           when the film has gone. */}
+      {transferLink && <TransferLinkPrompt link={transferLink} onClose={() => setTransferLink(null)} />}
       {IS_MOBILE ? (
         settings.onboardingComplete && !introShown && <UpdatePrompt />
       ) : (

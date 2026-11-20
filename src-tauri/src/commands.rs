@@ -35,6 +35,8 @@ pub const EVENT_BRIDGE_CHANGED: &str = "bridge://changed";
 /// The browser left a link in the inbox while the app was running. Carries
 /// nothing; the window answers with `take_handoffs`.
 pub const EVENT_BRIDGE_HANDOFF: &str = "bridge://handoff";
+/// Carries nothing; the interface asks `phone_transfer_status`.
+pub const EVENT_TRANSFER_CHANGED: &str = "transfer://changed";
 
 pub struct AppState {
     pub db: Arc<Database>,
@@ -236,6 +238,45 @@ pub fn bridge_forget_session(
 #[tauri::command]
 pub fn bridge_diagnostics(app: AppHandle, state: State<'_, AppState>) -> String {
     bridge::diagnostics(&state.settings(), &app.package_info().version.to_string())
+}
+
+/// Desktop only; the phone receives.
+#[tauri::command]
+pub async fn phone_transfer_start(
+    app: AppHandle,
+    sites: Vec<bridge::Site>,
+) -> AppResult<bridge::transfer_net::Started> {
+    if !bridge::supported() {
+        return Err(AppError::Other("sessions are sent from the desktop app".into()));
+    }
+    let on_change = Arc::new(move |_: bridge::transfer_net::Phase| {
+        let _ = app.emit(EVENT_TRANSFER_CHANGED, ());
+    });
+    bridge::transfer_net::start(sites, on_change).await
+}
+
+#[tauri::command]
+pub fn phone_transfer_cancel() {
+    bridge::transfer_net::cancel();
+}
+
+#[tauri::command]
+pub fn phone_transfer_status() -> Option<bridge::transfer_net::Phase> {
+    bridge::transfer_net::phase()
+}
+
+/// Phone only.
+#[tauri::command]
+pub async fn phone_transfer_receive(
+    app: AppHandle,
+    code: String,
+) -> AppResult<bridge::transfer_net::Received> {
+    if !cfg!(target_os = "android") {
+        return Err(AppError::Other("sessions are received by the phone app".into()));
+    }
+    let received = bridge::transfer_net::receive(&code).await;
+    let _ = app.emit(EVENT_BRIDGE_CHANGED, ());
+    Ok(received)
 }
 
 /// The links the browser left for the app, oldest first, each handed out once.

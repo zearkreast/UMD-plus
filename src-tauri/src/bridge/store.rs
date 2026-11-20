@@ -9,6 +9,10 @@
 //! folder or another user's hands the blob is inert, and another program
 //! running as the same user cannot open it without also taking `entropy.bin`.
 //!
+//! On the phone (jars from `transfer`) there is no DPAPI: they are sealed
+//! with ChaCha20-Poly1305 under a random key kept beside them, in a folder
+//! Android's backup rules exclude (`res/xml/backup_rules.xml`).
+//!
 //! The engine cannot read any of that, so a download that needs the session
 //! gets a `cookies.txt` written for it and deleted after it -- a lease. The
 //! plaintext exists for the length of one yt-dlp run, in a directory nothing
@@ -20,7 +24,7 @@ use std::sync::Mutex;
 
 use serde::{Deserialize, Serialize};
 
-use crate::bridge::protocol::{other_domain_ok, under_domain, Cookie, Push, Site};
+use crate::bridge::protocol::{other_domain_ok, under_domain, Browser, Cookie, Peer, Push, Site};
 use crate::bridge::{cookies, state};
 use crate::error::{AppError, AppResult};
 
@@ -156,6 +160,65 @@ pub fn save(push: &Push, site: Site) -> AppResult<()> {
 
     save_blob(site, &blob)?;
     state::record_push(push, site, &blob.cookies)
+}
+
+pub(super) struct ExportedJar {
+    pub cookies: Vec<Cookie>,
+    pub captured_at: i64,
+    /// The site an other-site jar is for.
+    pub domain: Option<String>,
+}
+
+/// `None` when there is nothing a download could use.
+pub(super) fn export(site: Site) -> AppResult<Option<ExportedJar>> {
+    let Some(blob) = load_blob(site)? else {
+        return Ok(None);
+    };
+    if !blob.signed_in || blob.cookies.is_empty() {
+        return Ok(None);
+    }
+    if site == Site::Other
+        && !state::other_fresh(Some(blob.captured_at), chrono::Utc::now().timestamp())
+    {
+        return Ok(None);
+    }
+    Ok(Some(ExportedJar {
+        cookies: blob.cookies,
+        captured_at: blob.captured_at,
+        domain: blob.domain,
+    }))
+}
+
+/// Stored through `save`, so it is filtered, dated and recorded exactly as a
+/// browser push. Returns whether anything was kept. Scanning is an explicit
+/// request, so an earlier removal on the phone does not block it.
+pub(super) fn receive(
+    site: Site,
+    cookies: Vec<Cookie>,
+    captured_at: i64,
+    domain: Option<String>,
+    account_hint: Option<String>,
+) -> AppResult<bool> {
+    state::resume(site)?;
+    let push = Push {
+        peer: Peer {
+            v: 1,
+            profile_id: String::new(),
+            browser: Browser::Unknown,
+            extension_version: String::new(),
+            profile_label: None,
+        },
+        site: Some(site),
+        domain,
+        signed_in: true,
+        resume: true,
+        account_hint,
+        // A jar dated in the future would never go stale.
+        captured_at: captured_at.min(chrono::Utc::now().timestamp()),
+        cookies,
+    };
+    save(&push, site)?;
+    Ok(session_exists(site))
 }
 
 /// Delete `site`'s stored session, and what `state.json` says about it. The
@@ -639,16 +702,108 @@ fn entropy_or_create() -> AppResult<Vec<u8>> {
     }
 }
 
-/// The phone builds this crate too, and there is no browser on it to link to.
-/// Everything above still has to compile; none of it has to work.
-#[cfg(not(windows))]
+#[cfg(target_os = "android")]
+fn protect(plain: &[u8]) -> AppResult<Vec<u8>> {
+    Ok(seal_at_rest(&seal_key_or_create()?, plain))
+}
+
+#[cfg(target_os = "android")]
+fn unprotect(sealed: &[u8]) -> Option<Vec<u8>> {
+    // As on Windows, reading never creates the key.
+    open_at_rest(&seal_key()?, sealed)
+}
+
+/// Bumped if the layout changes, so an old file reads as unopenable.
+#[cfg(any(target_os = "android", test))]
+const SEAL_V1: u8 = 1;
+#[cfg(any(target_os = "android", test))]
+const SEAL_CONTEXT: &[u8] = b"umdplus-session-at-rest-v1";
+
+/// `version || nonce || ciphertext`.
+#[cfg(any(target_os = "android", test))]
+fn seal_at_rest(key: &[u8; 32], plain: &[u8]) -> Vec<u8> {
+    use chacha20poly1305::aead::{Aead, KeyInit, Payload};
+    use chacha20poly1305::{ChaCha20Poly1305, Key, Nonce};
+
+    let nonce: [u8; 12] = crate::bridge::transfer::random();
+    let sealed = ChaCha20Poly1305::new(Key::from_slice(key))
+        .encrypt(
+            Nonce::from_slice(&nonce),
+            Payload {
+                msg: plain,
+                aad: SEAL_CONTEXT,
+            },
+        )
+        .expect("ChaCha20-Poly1305 encryption cannot fail for an in-memory buffer");
+    [&[SEAL_V1][..], &nonce, &sealed].concat()
+}
+
+#[cfg(any(target_os = "android", test))]
+fn open_at_rest(key: &[u8; 32], sealed: &[u8]) -> Option<Vec<u8>> {
+    use chacha20poly1305::aead::{Aead, KeyInit, Payload};
+    use chacha20poly1305::{ChaCha20Poly1305, Key, Nonce};
+
+    let (&version, rest) = sealed.split_first()?;
+    if version != SEAL_V1 || rest.len() < 12 {
+        return None;
+    }
+    let (nonce, body) = rest.split_at(12);
+    ChaCha20Poly1305::new(Key::from_slice(key))
+        .decrypt(
+            Nonce::from_slice(nonce),
+            Payload {
+                msg: body,
+                aad: SEAL_CONTEXT,
+            },
+        )
+        .ok()
+}
+
+#[cfg(target_os = "android")]
+fn seal_key_path() -> AppResult<PathBuf> {
+    Ok(super::dir()?.join("seal.key"))
+}
+
+#[cfg(target_os = "android")]
+fn seal_key() -> Option<[u8; 32]> {
+    let bytes = std::fs::read(seal_key_path().ok()?).ok()?;
+    <[u8; 32]>::try_from(bytes.as_slice()).ok()
+}
+
+#[cfg(target_os = "android")]
+fn seal_key_or_create() -> AppResult<[u8; 32]> {
+    if let Some(existing) = seal_key() {
+        return Ok(existing);
+    }
+    let bytes: [u8; 32] = crate::bridge::transfer::random();
+    // Created exclusively for the reason `entropy_or_create` gives.
+    match std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(seal_key_path()?)
+    {
+        Ok(mut file) => {
+            use std::io::Write;
+            file.write_all(&bytes)?;
+            file.sync_all()?;
+            Ok(bytes)
+        }
+        Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists => seal_key().ok_or_else(|| {
+            AppError::Other("the key for the stored sessions could not be read".into())
+        }),
+        Err(err) => Err(err.into()),
+    }
+}
+
+/// Development and test builds only; nothing is kept.
+#[cfg(not(any(windows, target_os = "android")))]
 fn protect(_plain: &[u8]) -> AppResult<Vec<u8>> {
     Err(AppError::Other(
-        "the browser link is a Windows feature".into(),
+        "sessions are kept only on Windows and Android".into(),
     ))
 }
 
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "android")))]
 fn unprotect(_sealed: &[u8]) -> Option<Vec<u8>> {
     None
 }
@@ -656,6 +811,25 @@ fn unprotect(_sealed: &[u8]) -> Option<Vec<u8>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_jar_sealed_at_rest_opens_only_with_its_key() {
+        let key = [7u8; 32];
+        let sealed = seal_at_rest(&key, b"{\"cookies\":[]}");
+        assert_eq!(sealed[0], SEAL_V1);
+        assert_eq!(open_at_rest(&key, &sealed).as_deref(), Some(&b"{\"cookies\":[]}"[..]));
+        assert!(open_at_rest(&[8u8; 32], &sealed).is_none());
+
+        let mut flipped = sealed.clone();
+        let last = flipped.len() - 1;
+        flipped[last] ^= 1;
+        assert!(open_at_rest(&key, &flipped).is_none());
+
+        let mut other_version = sealed.clone();
+        other_version[0] = 2;
+        assert!(open_at_rest(&key, &other_version).is_none());
+        assert!(open_at_rest(&key, &[]).is_none());
+    }
 
     #[test]
     fn two_leases_never_share_a_name() {

@@ -523,6 +523,66 @@ export const en = {
   'settings.extensionFolderFailed': 'The extension folder could not be opened',
   'settings.linkForgetSite': 'Remove the {site} session',
   'settings.linkForgetFailed': 'The session could not be removed',
+  'settings.connectionSummaryMobile': 'Sessions from your computer',
+  'transfer.send': 'Send to phone',
+  'transfer.sendTitle': 'Send sessions to your phone',
+  'transfer.chooseHint': 'Choose which sign-ins UMD+ on your phone should get.',
+  'transfer.sameNetwork':
+    'Your phone and this computer need to be on the same Wi-Fi network. The sessions never go through the internet: they go straight from this computer to the phone, encrypted.',
+  'transfer.showCode': 'Show code',
+  'transfer.codeAlt': 'Code for the phone to scan',
+  'transfer.scanHint':
+    'On your phone, open UMD+ › Settings › Connection, tap Scan from computer and point the camera at this code.',
+  'transfer.expiresIn': 'Works once, for {time}',
+  'transfer.addresses': 'This computer: {addresses}',
+  'transfer.firewallHint':
+    'If Windows asks whether UMD+ may use the network, allow it on private networks.',
+  'transfer.sending': 'Sending…',
+  'transfer.sent': 'Sent to your phone',
+  'transfer.sentHint': 'The phone lists them under Settings › Connection.',
+  'transfer.expired': 'The code expired',
+  'transfer.expiredHint': 'Nothing was sent. Show a new code to try again.',
+  'transfer.failed': 'The sessions could not be sent',
+  'transfer.failedHint':
+    "The phone's connection dropped, or another device on the network kept asking with the wrong code. Show a new code to try again.",
+  'transfer.tryAgain': 'New code',
+  'transfer.noNetwork': 'This computer is not on a local network',
+  'transfer.noNetworkHint':
+    "Connect it to the same Wi-Fi as your phone, or to your phone's hotspot, and try again.",
+  'transfer.nothingToSend': 'There is no session to send',
+  'transfer.startFailed': 'The code could not be shown',
+  'transfer.phoneTitle': 'Sessions from your computer',
+  'transfer.phoneHint':
+    'A phone has no browser extension. If UMD+ on your computer holds your sign-ins, bring them here with a QR code for private, age-restricted and sign-in-only posts.',
+  'transfer.scan': 'Scan from computer',
+  'transfer.receiving': 'Receiving…',
+  'transfer.received': 'Received: {sites}',
+  'transfer.howTitle': 'How does it work?',
+  'transfer.howHint':
+    'On your computer, open UMD+ › Settings › Connection and press Send to phone. Then tap Scan from computer here and scan the code on the screen. The code works once, for two minutes. The sessions come straight from the computer to this phone, encrypted, and are kept only here.',
+  'transfer.networkTitle': 'Not on the same network?',
+  'transfer.networkHint':
+    "The code only works on the same local network; no server of ours sits in between. If the phone is on mobile data or a guest network, join the computer's Wi-Fi, or connect the computer to the phone's hotspot.",
+  'transfer.staleHint':
+    'A session goes stale a week after the computer last got it from the browser. Scan again for a fresh one.',
+  'transfer.cameraDenied':
+    'UMD+ may not use the camera. Allow it in the app settings to scan the code.',
+  'transfer.openSettings': 'Open settings',
+  'transfer.receiveFailed': 'The sessions could not be received',
+  'transfer.linkTitle': 'Take sessions from a computer?',
+  'transfer.linkBody': 'This code takes sessions from this computer: {address}',
+  'transfer.linkWarning':
+    "Go on only if you scanned this code yourself, from UMD+ on your own computer. Someone else's code puts their account on this phone.",
+  'transfer.linkConfirm': 'Take',
+  'transfer.refused.invalid':
+    'That is not a UMD+ code. Scan the code Send to phone shows on your computer.',
+  'transfer.refused.expired': 'The code expired. Show a new one on the computer.',
+  'transfer.refused.used': 'This code was already used. Show a new one on the computer.',
+  'transfer.refused.unreachable':
+    'The computer did not answer. Make sure both are on the same Wi-Fi and the code is still on the screen.',
+  'transfer.refused.rejected': 'The computer turned the code down. Show a new one and scan again.',
+  'transfer.refused.tampered': 'What arrived did not match the code, so it was thrown away.',
+  'transfer.refused.empty': 'The computer sent no session that could be used.',
   'settings.linkDisconnectFailed': 'Could not disconnect the browser',
   'settings.linkCopyDiagnostics': 'Copy diagnostics',
   'settings.linkDiagnosticsCopied': 'Diagnostics copied',

@@ -154,6 +154,11 @@ CRATE_LICENSES = {
     "os_info": "MIT",
     "windows-sys": "MIT OR Apache-2.0",
     "winreg": "MIT",
+    "qrcode": "MIT OR Apache-2.0",
+    "chacha20poly1305": "Apache-2.0 OR MIT",
+    "getrandom": "MIT OR Apache-2.0",
+    "if-addrs": "MIT OR BSD-3-Clause",
+    "tauri-plugin-barcode-scanner": "Apache-2.0 OR MIT",
 }
 
 

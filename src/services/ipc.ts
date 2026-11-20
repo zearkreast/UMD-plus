@@ -15,6 +15,9 @@ import type {
   DownloadRequest,
   BridgeSite,
   ExtensionFolder,
+  TransferPhase,
+  TransferReceipt,
+  TransferStart,
   Subscription,
   SubscriptionBackfill,
   DownloadTask,
@@ -105,6 +108,14 @@ export const bridgeDisconnect = () => invoke<BridgeStatus>('bridge_disconnect');
 /** Remove one site's stored session; the browser stays connected. */
 export const bridgeForgetSession = (site: BridgeSite) =>
   invoke<BridgeStatus>('bridge_forget_session', { site });
+/** The listener closes on success, on expiry or on `phoneTransferCancel`. */
+export const phoneTransferStart = (sites: BridgeSite[]) =>
+  invoke<TransferStart>('phone_transfer_start', { sites });
+export const phoneTransferCancel = () => invoke<void>('phone_transfer_cancel');
+/** Null when no code was shown since the app started. */
+export const phoneTransferStatus = () => invoke<TransferPhase | null>('phone_transfer_status');
+export const phoneTransferReceive = (code: string) =>
+  invoke<TransferReceipt>('phone_transfer_receive', { code });
 /** The unpacked extension's folder, brought up to this version first. */
 export const extensionFolder = () => invoke<ExtensionFolder>('extension_folder');
 export const openExtensionDir = () => invoke<void>('open_extension_dir');
@@ -334,6 +345,7 @@ export const EVENTS = {
   toolsChanged: 'tools://changed',
   settingsChanged: 'settings://changed',
   bridgeChanged: 'bridge://changed',
+  transferChanged: 'transfer://changed',
   handoff: 'bridge://handoff',
   convertChanged: 'convert://changed',
   convertProgress: 'convert://progress',
@@ -386,6 +398,11 @@ export function onSettingsChanged(handler: (settings: Settings) => void): Promis
  */
 export function onBridgeChanged(handler: () => void): Promise<UnlistenFn> {
   return listen(EVENTS.bridgeChanged, () => handler());
+}
+
+/** Carries nothing; ask `phoneTransferStatus`. */
+export function onTransferChanged(handler: () => void): Promise<UnlistenFn> {
+  return listen(EVENTS.transferChanged, () => handler());
 }
 
 /**

@@ -47,9 +47,16 @@
 //!
 //! Both processes write `state.json`, so every write is a write-then-rename and
 //! every read tolerates a torn or missing file by falling back to defaults.
+//!
+//! The phone has no extension; Send to phone moves the desktop's jars to it
+//! (`transfer`, `transfer_net`), into the same jars under the same rules.
+//! The phone adds `seal.key` (its stand-in for DPAPI) and
+//! `transfers-spent.json` (digests of codes it has taken) to the layout.
 
 pub mod handoff;
 pub mod protocol;
+pub mod transfer;
+pub mod transfer_net;
 
 mod cookies;
 mod state;
@@ -76,6 +83,17 @@ pub use store::CookieLease;
 /// desktop browser to link to, so the whole feature compiles out there.
 pub const fn supported() -> bool {
     cfg!(windows)
+}
+
+/// Windows from the browser, the phone from the desktop.
+pub const fn holds_sessions() -> bool {
+    cfg!(any(windows, target_os = "android"))
+}
+
+/// The phone has no switch: its sessions exist only because the user scanned
+/// for them, and Remove lets go.
+pub fn lending_on(settings: &Settings) -> bool {
+    holds_sessions() && (cfg!(target_os = "android") || settings.browser_link_enabled)
 }
 
 /// `%APPDATA%\UniversalDownloader\bridge`, created on first use.
@@ -145,9 +163,7 @@ impl Site {
 /// lends is the extension's to say, one switch each, and a site it does not
 /// lend simply has no session here.
 pub fn available(settings: &Settings, site: Site) -> bool {
-    supported()
-        && settings.browser_link_enabled
-        && state::load().session_state(site) == SessionState::Fresh
+    lending_on(settings) && state::load().session_state(site) == SessionState::Fresh
 }
 
 /// Materialise `site`'s stored session as a `cookies.txt` for one engine run.
@@ -233,7 +249,7 @@ pub fn other_lease(settings: &Settings, url: &str, page_url: Option<&str>) -> Op
     // The switch first, before anything on disk is looked at: with it off --
     // as every test that runs the pipeline sets it -- nothing under `bridge/`
     // is so much as listed.
-    if !supported() || !settings.browser_link_enabled || !store::session_exists(Site::Other) {
+    if !lending_on(settings) || !store::session_exists(Site::Other) {
         return None;
     }
     let link = state::load();
@@ -243,7 +259,7 @@ pub fn other_lease(settings: &Settings, url: &str, page_url: Option<&str>) -> Op
         captured_at,
     });
     let now = chrono::Utc::now().timestamp();
-    if !lends_other(settings.browser_link_enabled, jar, url, page_url, now)
+    if !lends_other(lending_on(settings), jar, url, page_url, now)
         || store::refused_before(url, captured_at)
     {
         return None;

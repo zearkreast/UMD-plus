@@ -863,6 +863,35 @@ export type BridgeSessionState = 'none' | 'fresh' | 'stale';
 /** A site whose browser session the app can keep. */
 export type BridgeSite = 'youtube' | 'tiktok' | 'reddit' | 'x' | 'other';
 
+export type TransferPhase = 'waiting' | 'sending' | 'sent' | 'expired' | 'cancelled' | 'failed';
+
+/** `qr` is an SVG data URI, for an `<img>`. */
+export type TransferStart =
+  | {
+      outcome: 'ready';
+      qr: string;
+      addresses: string[];
+      port: number;
+      /** Seconds since the epoch, by this computer's clock. */
+      expiresAt: number;
+      sites: BridgeSite[];
+    }
+  | { outcome: 'noNetwork' }
+  | { outcome: 'nothingToSend' };
+
+export type TransferRefusal =
+  | 'invalid'
+  | 'expired'
+  | 'used'
+  | 'unreachable'
+  | 'rejected'
+  | 'tampered'
+  | 'empty';
+
+export type TransferReceipt =
+  | { outcome: 'received'; sites: BridgeSite[] }
+  | { outcome: 'refused'; reason: TransferRefusal };
+
 /**
  * Everything the app knows about the browser link without decrypting anything.
  * Nothing here describes a cookie -- see the header of `bridge/protocol.rs`.

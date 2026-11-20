@@ -117,6 +117,12 @@ extension.
   turn the switch off. If the browser has no cookies for that site, nothing is
   kept, and what was held for the site before goes.
 
+The extension never sends anything to a phone. The desktop app can pass the
+sessions it holds on to its own phone app, but only the ones you tick under
+Send to phone and only when that phone scans the code the app then shows:
+straight over your own network, encrypted with a key that is only in that
+code, and through no server.
+
 You can confirm all of this by reading `background.js`, which is not minified
 or obfuscated.
 
