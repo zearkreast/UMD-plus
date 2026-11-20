@@ -47,3 +47,21 @@ export function countdown(expiresAt: number, nowMs: number): string {
   const left = Math.max(0, Math.ceil(expiresAt - nowMs / 1000));
   return `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`;
 }
+
+export interface TransferLink {
+  code: string;
+  /** The computer's addresses, as the code names them, to show before asking. */
+  addresses: string[];
+}
+
+/** A Send to phone code in text the phone was handed: opened from its camera, or shared. */
+export function transferLinkIn(text: string): TransferLink | null {
+  const code = text.match(/umdplus:\/\/transfer\?\S+/i)?.[0];
+  if (!code) return null;
+  try {
+    const addresses = (new URL(code).searchParams.get('a') ?? '').split(',').filter(Boolean);
+    return { code, addresses };
+  } catch {
+    return null;
+  }
+}

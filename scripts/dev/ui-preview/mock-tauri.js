@@ -16,6 +16,8 @@
  *   ?clear=fail         clearing the history is refused
  *   ?tiktok=fresh       the browser lends a TikTok sign-in too (or `stale`;
  *                       default: none)
+ *   ?link=transfer      the phone opens with a Send to phone code from its
+ *                       camera app (with ?platform=android)
  *   ?other=fresh        İndir has just lent instagram.com's sign-in through
  *                       the extension's Other sites switch (default: none)
  *   ?raf=timers         run animation frames off timers (see below)
@@ -576,6 +578,8 @@
       url: `https://www.youtube.com/watch?v=episode${index + 1}`,
     })),
   });
+
+  let sharedTaken = false;
 
   let outlook = {
     heldUntil: params.has('held') ? '02:00' : null,
@@ -1729,7 +1733,13 @@
     // something else -- a name ending in .mp3 is a file with no picture.
     platform_pick_media_files: () => [...picker.picked],
     platform_set_system_bars: () => null,
-    platform_take_shared_text: () => null,
+    // `?link=transfer` opens the app as the camera app would with a Send to
+    // phone code; only the first ask gets it, as on the phone.
+    platform_take_shared_text: () => {
+      if (params.get('link') !== 'transfer' || sharedTaken) return null;
+      sharedTaken = true;
+      return 'umdplus://transfer?v=1&a=192.168.1.20&p=40123&t=AAAA&k=BBBB&e=9999999999';
+    },
     platform_set_portrait_lock: () => null,
 
     check_app_update: () => (params.has('update') ? update : null),

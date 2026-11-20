@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 
 import type { BridgeStatus } from '@/types';
-import { countdown, sendableSites, siteName } from './phoneTransfer';
+import { countdown, sendableSites, siteName, transferLinkIn } from './phoneTransfer';
 
 function status(patch: Partial<BridgeStatus> = {}): BridgeStatus {
   return {
@@ -62,5 +62,19 @@ describe('countdown', () => {
     expect(countdown(1_000_120, 1_000_000_000)).toBe('2:00');
     expect(countdown(1_000_065, 1_000_000_500)).toBe('1:05');
     expect(countdown(1_000_000, 1_000_009_000)).toBe('0:00');
+  });
+});
+
+describe('transferLinkIn', () => {
+  const code = 'umdplus://transfer?v=1&a=192.168.1.20,10.0.0.4&p=40123&t=abc&k=def&e=1763000000';
+
+  test('finds the code opened from the camera, or inside shared text', () => {
+    expect(transferLinkIn(code)).toEqual({ code, addresses: ['192.168.1.20', '10.0.0.4'] });
+    expect(transferLinkIn(`Kod: ${code} `)?.code).toBe(code);
+  });
+
+  test('leaves every other text alone', () => {
+    expect(transferLinkIn('https://www.instagram.com/gezgin.ada/')).toBeNull();
+    expect(transferLinkIn('umdplus://other?a=1')).toBeNull();
   });
 });

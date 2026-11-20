@@ -562,6 +562,11 @@ export const en = {
     'UMD+ may not use the camera. Allow it in the app settings to scan the code.',
   'transfer.openSettings': 'Open settings',
   'transfer.receiveFailed': 'The sessions could not be received',
+  'transfer.linkTitle': 'Take sessions from a computer?',
+  'transfer.linkBody': 'This code takes sessions from this computer: {address}',
+  'transfer.linkWarning':
+    "Go on only if you scanned this code yourself, from UMD+ on your own computer. Someone else's code puts their account on this phone.",
+  'transfer.linkConfirm': 'Take',
   'transfer.refused.invalid':
     'That is not a UMD+ code. Scan the code Send to phone shows on your computer.',
   'transfer.refused.expired': 'The code expired. Show a new one on the computer.',

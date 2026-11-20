@@ -53,6 +53,14 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/plain" />
             </intent-filter>
+            <!-- A computer's Send to phone code, read with the phone's own camera.
+                 Any page can link here too, so the app asks before connecting. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="umdplus" android:host="transfer" />
+            </intent-filter>
         </activity>
 
         <service

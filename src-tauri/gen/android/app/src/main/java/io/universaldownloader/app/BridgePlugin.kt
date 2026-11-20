@@ -71,7 +71,10 @@ class PickArgs {
 class BridgePlugin(private val activity: Activity) : Plugin(activity) {
     private var webView: WebView? = null
 
-    /** A link shared from another app, held until the interface asks for it. */
+    /**
+     * A link shared from another app, or a `umdplus://transfer` code opened
+     * from the camera, held until the interface asks for it.
+     */
     @Volatile
     private var sharedText: String? = null
 
@@ -97,8 +100,11 @@ class BridgePlugin(private val activity: Activity) : Plugin(activity) {
     }
 
     private fun receive(intent: Intent?): Boolean {
-        if (intent?.action != Intent.ACTION_SEND) return false
-        val text = intent.getStringExtra(Intent.EXTRA_TEXT) ?: return false
+        val text = when (intent?.action) {
+            Intent.ACTION_SEND -> intent.getStringExtra(Intent.EXTRA_TEXT)
+            Intent.ACTION_VIEW -> intent.data?.takeIf { it.scheme == "umdplus" }?.toString()
+            else -> null
+        } ?: return false
         sharedText = text
         // Consumed: a configuration change re-reads the same intent.
         intent.action = null

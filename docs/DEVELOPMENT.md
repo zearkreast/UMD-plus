@@ -142,7 +142,10 @@ handful of `IS_MOBILE` branches in the front end.
   screen says. What arrives is stored through the same path as a push from
   the browser (`store::receive`) and lent and removed exactly as on the
   desktop, sealed at rest with a per-install key in place of DPAPI, in a
-  folder Android's backup rules leave out.
+  folder Android's backup rules leave out. The code is also a
+  `umdplus://transfer` link the app is registered for, so the phone's own
+  camera app can open it; because any page could link there too, a code that
+  arrives that way waits for the user to confirm (`TransferLinkPrompt`).
 - **Updates.** A build records the commit it came from (`build.rs`). Releases
   are unversioned, so `src-tauri/src/updater.rs` compares that commit with the
   one the `latest` tag points at; a difference means a newer build. The APK is

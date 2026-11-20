@@ -556,6 +556,11 @@ export const tr: Record<TranslationKey, string> = {
     "UMD+'nın kamerayı kullanma izni yok. Kodu taramak için uygulama ayarlarından izin ver.",
   'transfer.openSettings': 'Ayarları aç',
   'transfer.receiveFailed': 'Oturumlar alınamadı',
+  'transfer.linkTitle': 'Bilgisayardan oturum alınsın mı?',
+  'transfer.linkBody': 'Bu kod oturumları şu bilgisayardan alır: {address}',
+  'transfer.linkWarning':
+    'Yalnızca bu kodu kendi bilgisayarındaki UMD+\'dan, kendin okuttuysan devam et. Başkasının kodu, onun hesabını bu telefona yerleştirir.',
+  'transfer.linkConfirm': 'Al',
   'transfer.refused.invalid':
     "Bu bir UMD+ kodu değil. Bilgisayarda Telefona aktar'ın gösterdiği kodu tara.",
   'transfer.refused.expired': 'Kodun süresi dolmuş. Bilgisayarda yenisini göster.',
