@@ -37,3 +37,9 @@ scripts/intro-video/out/
 /scripts/UniversalDownloader_*
 extension-firefox.zip
 extension-full.zip
+
+# LLM files
+settings.local.json
+CLAUDE.md
+HANDOFF.md
+.claude
