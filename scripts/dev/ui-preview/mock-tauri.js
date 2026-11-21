@@ -909,7 +909,7 @@
 
   /** What the phone's file picker returns (see platform_pick_media_files). */
   const picker = {
-    picked: ['/data/user/0/io.universaldownloader.app/cache/imports/tatil klibi.mp4'],
+    picked: ['/data/user/0/app.umdplus/cache/imports/tatil klibi.mp4'],
   };
 
   /**
